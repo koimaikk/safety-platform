@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>安全パトロール | 安全管理プラットフォーム</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@600;700&display=swap" rel="stylesheet">
+<script>
+/**
+ * shared.js - 建設現場安全管理プラットフォーム 共通データ層
+ * Version: 1.0.0
+ */
+'use strict';
+
+var SP = {
+  PROJECTS:   'platform_projects',
+  COMPANIES:  'platform_companies',
+  QUALS:      'platform_quals',
+  SETTINGS:   'platform_settings',
+  PW:         'platform_pw',
+  _OLD_KY_PROJ:     'ky_projects_v6',
+  _OLD_ANKETO_PROJ: 'anketo_proj',
+  _OLD_ANKETO_COMP: 'anketo_comp',
+  _OLD_ANKETO_QUAL: 'anketo_quals',
+  _OLD_ANKETO_PW:   'anketo_pw',
+  _OLD_ANKETO_SET:  'anketo_settings',
+  VERSION: '1.0.0'
+};
+
+// ═══ 工事マスタ ════════════════════════════════════════════════
+
+function spGetProjects(){try{var s=localStorage.getItem(SP.PROJECTS);return s?JSON.parse(s):[];}catch(e){return[];}}
+function spSaveProjects(list){localStorage.setItem(SP.PROJECTS,JSON.stringify(list));}
+function spGetShownProjects(){return spGetProjects().filter(function(p){return p.active!==false&&p.shown===true;});}
+function spGetActiveProjects(){return spGetProjects().filter(function(p){return p.active!==false;});}
+
+function spAddProject(proj){
+  var list=spGetProjects();
+  var p={
+    id:'proj_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    name:proj.name||'',place:proj.place||proj.addr||'',
+    lat:proj.lat||null,lon:proj.lon||null,emails:proj.emails||'',
+    periodS:proj.periodS||'',periodE:proj.periodE||'',
+    client:proj.client||'',type:proj.type||'',
+    active:true,shown:false,createdAt:new Date().toISOString()
+  };
+  list.push(p);spSaveProjects(list);return p;
+}
+
+function spUpdateProject(id,updates){
+  spSaveProjects(spGetProjects().map(function(p){return p.id===id?Object.assign({},p,updates):p;}));
+}
+function spDeleteProject(id){spSaveProjects(spGetProjects().filter(function(p){return p.id!==id;}));}
+
+// ═══ 協力会社マスタ ════════════════════════════════════════════
+
+function spGetCompanies(){try{var s=localStorage.getItem(SP.COMPANIES);return s?JSON.parse(s):[];}catch(e){return[];}}
+function spSaveCompanies(list){localStorage.setItem(SP.COMPANIES,JSON.stringify(list));}
+function spGetActiveCompanies(){return spGetCompanies().filter(function(c){return c.active!==false;});}
+
+function spAddCompany(comp){
+  var list=spGetCompanies();
+  var c={id:'comp_'+Date.now(),name:comp.name||'',contact:comp.contact||'',phone:comp.phone||'',active:true,createdAt:new Date().toISOString()};
+  list.push(c);spSaveCompanies(list);return c;
+}
+function spUpdateCompany(id,updates){spSaveCompanies(spGetCompanies().map(function(c){return c.id===id?Object.assign({},c,updates):c;}));}
+function spDeleteCompany(id){spSaveCompanies(spGetCompanies().filter(function(c){return c.id!==id;}));}
+
+// ═══ 資格マスタ ════════════════════════════════════════════════
+
+function spGetQuals(){try{var s=localStorage.getItem(SP.QUALS);return s?JSON.parse(s):[];}catch(e){return[];}}
+function spSaveQuals(list){localStorage.setItem(SP.QUALS,JSON.stringify(list));}
+function spGetActiveQuals(){return spGetQuals().filter(function(q){return q.active===true;});}
+
+// ═══ 共通設定 ══════════════════════════════════════════════════
+
+function spGetSettings(){try{return JSON.parse(localStorage.getItem(SP.SETTINGS)||'{}');}catch(e){return{};}}
+function spSaveSettings(s){localStorage.setItem(SP.SETTINGS,JSON.stringify(s));}
+function spGetSetting(key,def){var s=spGetSettings();return(key in s)?s[key]:(def!==undefined?def:null);}
+function spSetSetting(key,val){var s=spGetSettings();s[key]=val;spSaveSettings(s);}
+function spGetGeminiApiKey(){return spGetSetting('geminiApiKey','');}
+function spGetGasUrl(){return spGetSetting('gasUrl','');}
+function spGetAdminEmail(){return spGetSetting('adminEmail','');}
+function spGetPw(){return localStorage.getItem(SP.PW)||localStorage.getItem(SP._OLD_ANKETO_PW)||'admin1234';}
+function spSetPw(pw){localStorage.setItem(SP.PW,pw);}
+
+// ═══ アンケート互換レイヤー ════════════════════════════════════
+
+var SK={proj:SP.PROJECTS,comp:SP.COMPANIES,quals:SP.QUALS,pw:SP.PW};
+
+function loadList(k){
+  if(k===SP.PROJECTS)return spGetProjects();
+  if(k===SP.COMPANIES)return spGetCompanies();
+  if(k===SP.QUALS)return spGetQuals();
+  try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return[];}
+}
+function saveList(k,list){
+  if(k===SP.PROJECTS){spSaveProjects(list);return;}
+  if(k===SP.COMPANIES){spSaveCompanies(list);return;}
+  if(k===SP.QUALS){spSaveQuals(list);return;}
+  localStorage.setItem(k,JSON.stringify(list));
+}
+function getPw(){return spGetPw();}
+function setPw(p){spSetPw(p);}
+function getSettings(){return spGetSettings();}
+function saveSettings(s){spSaveSettings(s);}
+
+// ═══ KY互換レイヤー ════════════════════════════════════════════
+
+function spGetProjectsForKY(){
+  return spGetActiveProjects().map(function(p){
+    return{_id:p.id,name:p.name,place:p.place,lat:p.lat,lon:p.lon,emails:p.emails};
+  });
+}
+
+function spSaveProjectsFromKY(kyProjects){
+  var current=spGetProjects();
+  kyProjects.forEach(function(ky){
+    var idx=-1;
+    current.forEach(function(p,i){if(p.id===ky._id)idx=i;});
+    if(idx>=0){
+      current[idx].name=ky.name;
+      if(ky.place!==undefined)current[idx].place=ky.place;
+      if(ky.lat!==undefined)current[idx].lat=ky.lat;
+      if(ky.lon!==undefined)current[idx].lon=ky.lon;
+      if(ky.emails!==undefined)current[idx].emails=ky.emails;
+    }else{
+      current.push({
+        id:ky._id||('proj_ky_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)),
+        name:ky.name||'',place:ky.place||'',lat:ky.lat||null,lon:ky.lon||null,
+        emails:ky.emails||'',periodS:'',periodE:'',client:'',type:'',
+        active:true,shown:false,createdAt:new Date().toISOString()
+      });
+    }
+  });
+  spSaveProjects(current);
+}
+
+// ═══ データ移行 ════════════════════════════════════════════════
+
+function spMigrateIfNeeded(){
+  if(localStorage.getItem('platform_migrated'))return;
+  var newProj=spGetProjects();
+
+  // KY工事を移行
+  try{
+    var ky=JSON.parse(localStorage.getItem(SP._OLD_KY_PROJ)||'[]');
+    ky.forEach(function(p){
+      if(!p.name)return;
+      var exists=newProj.some(function(np){return np.name===p.name;});
+      if(!exists)newProj.push({
+        id:'proj_ky_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+        name:p.name,place:p.place||'',lat:p.lat||null,lon:p.lon||null,
+        emails:p.emails||'',periodS:'',periodE:'',client:'',type:'',
+        active:true,shown:false,createdAt:new Date().toISOString(),_source:'ky'
+      });
+    });
+  }catch(e){console.warn('KY移行エラー:',e);}
+
+  // アンケート工事を移行
+  try{
+    var ank=JSON.parse(localStorage.getItem(SP._OLD_ANKETO_PROJ)||'[]');
+    ank.forEach(function(p){
+      if(!p.name)return;
+      var exists=newProj.some(function(np){return np.name===p.name;});
+      if(!exists)newProj.push({
+        id:p.id||('proj_ank_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)),
+        name:p.name,place:p.addr||'',lat:null,lon:null,emails:'',
+        periodS:p.periodS||'',periodE:p.periodE||'',client:p.client||'',type:p.type||'',
+        active:p.active!==false,shown:p.shown===true,createdAt:new Date().toISOString(),_source:'anketo'
+      });
+    });
+  }catch(e){console.warn('アンケート移行エラー:',e);}
+
+  if(newProj.length>0)spSaveProjects(newProj);
+
+  // 協力会社移行
+  try{
+    if(spGetCompanies().length===0){
+      var comps=JSON.parse(localStorage.getItem(SP._OLD_ANKETO_COMP)||'[]');
+      spSaveCompanies(comps.map(function(c){
+        return{id:c.id||('comp_'+Date.now()),name:c.name||'',contact:c.contact||'',phone:c.phone||'',active:c.active!==false,createdAt:new Date().toISOString()};
+      }));
+    }
+  }catch(e){}
+
+  // 資格移行
+  try{
+    if(spGetQuals().length===0){
+      var quals=JSON.parse(localStorage.getItem(SP._OLD_ANKETO_QUAL)||'[]');
+      if(quals.length>0)spSaveQuals(quals);
+    }
+  }catch(e){}
+
+  // 設定移行
+  try{
+    var s=spGetSettings();
+    var ankSet=JSON.parse(localStorage.getItem(SP._OLD_ANKETO_SET)||'{}');
+    if(ankSet.gasUrl&&!s.gasUrl)s.gasUrl=ankSet.gasUrl;
+    if(ankSet.coName&&!s.coName)s.coName=ankSet.coName;
+    var kyKey=localStorage.getItem('ky_gemini_api_key');
+    var kyGas=localStorage.getItem('ky_gas_url');
+    var kyMail=localStorage.getItem('ky_admin_email');
+    if(kyKey&&!s.geminiApiKey)s.geminiApiKey=kyKey;
+    if(kyGas&&!s.gasUrl)s.gasUrl=kyGas;
+    if(kyMail&&!s.adminEmail)s.adminEmail=kyMail;
+    spSaveSettings(s);
+  }catch(e){}
+
+  // PW移行
+  try{var oldPw=localStorage.getItem(SP._OLD_ANKETO_PW);if(oldPw&&!localStorage.getItem(SP.PW))localStorage.setItem(SP.PW,oldPw);}catch(e){}
+
+  localStorage.setItem('platform_migrated','1');
+  console.log('shared.js: データ移行完了');
+}
+
+// ═══ ユーティリティ ════════════════════════════════════════════
+
+function spEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function spFmtDate(s){if(!s)return '―';var d=new Date(s);if(isNaN(d))return s;return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';}
+
+function spExportAll(){
+  return{
+    version:SP.VERSION,exportedAt:new Date().toISOString(),
+    projects:spGetProjects(),companies:spGetCompanies(),quals:spGetQuals(),
+    settings:(function(){var s=spGetSettings();var r=Object.assign({},s);delete r.geminiApiKey;return r;})(),
+    responses:(function(){try{return JSON.parse(localStorage.getItem('anketo_responses')||'[]');}catch(e){return[];}})()
+  };
+}
+
+function spImportAll(data){
+  if(data.projects)spSaveProjects(data.projects);
+  if(data.companies)spSaveCompanies(data.companies);
+  if(data.quals)spSaveQuals(data.quals);
+  if(data.settings){var s=spGetSettings();spSaveSettings(Object.assign(s,data.settings));}
+  if(data.responses)localStorage.setItem('anketo_responses',JSON.stringify(data.responses));
+}
+
+// 自動移行実行
+(function(){spMigrateIfNeeded();})();
+
+</script>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--card:#1c2128;--border:#30363d;
+  --ye:#FFD600;--or:#FF6B00;--red:#FF4444;--grn:#22C55E;--blu:#3B82F6;
+  --txt:#e6edf3;--muted:#7d8590;--wht:#f0f6fc;
+  --risk1:#22C55E;--risk2:#EAB308;--risk3:#FF6B00;--risk4:#FF4444;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;font-size:14px;}
+
+/* ── HEADER ── */
+header{background:var(--or);padding:10px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.5);}
+.hd-icon{font-size:22px;}
+.hd-title{font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;color:#fff;flex:1;letter-spacing:.5px;}
+.hd-nav{display:flex;gap:6px;flex-shrink:0;}
+.hd-nav a{background:rgba(255,255,255,.2);color:#fff;font-size:11px;font-weight:700;padding:5px 10px;border-radius:4px;text-decoration:none;white-space:nowrap;}
+.hd-nav a:hover{background:rgba(255,255,255,.35);}
+
+/* ── PROJECT BAR ── */
+.proj-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.proj-bar select,.proj-bar .type-btn{height:36px;border-radius:6px;font-size:13px;font-family:inherit;}
+.proj-bar select{background:var(--card);color:var(--txt);border:1px solid var(--border);padding:0 10px;flex:1;min-width:160px;}
+.type-btn{border:2px solid var(--border);background:var(--card);color:var(--muted);padding:0 14px;cursor:pointer;font-weight:700;transition:.2s;}
+.type-btn.active{border-color:var(--ye);color:var(--ye);background:rgba(255,214,0,.08);}
+.type-label{font-size:11px;color:var(--muted);font-weight:700;}
+
+/* ── MAIN TABS ── */
+.tab-nav{display:flex;background:var(--surface);border-bottom:2px solid var(--border);overflow-x:auto;}
+.tab-nav button{flex:1;padding:12px 8px;background:none;border:none;color:var(--muted);font-size:12px;font-family:inherit;font-weight:700;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:.2s;margin-bottom:-2px;}
+.tab-nav button.active{color:var(--or);border-bottom-color:var(--or);}
+
+/* ── CONTENT ── */
+.tab-content{display:none;padding:12px;}
+.tab-content.active{display:block;}
+
+/* ── SECTION ── */
+.sec{background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;}
+.sec-hd{background:var(--surface);padding:10px 14px;font-size:12px;font-weight:700;color:var(--ye);display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;}
+.sec-hd .sec-badge{background:var(--or);color:#fff;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:auto;}
+.sec-body{padding:12px 14px;}
+
+/* ── WORK TYPE SELECT ── */
+.wt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;}
+.wt-btn{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;font-family:inherit;color:var(--muted);cursor:pointer;text-align:left;transition:.2s;line-height:1.4;}
+.wt-btn.sel{border-color:var(--or);color:var(--wht);background:rgba(255,107,0,.12);}
+.wt-btn .wt-num{font-size:10px;color:var(--muted);display:block;margin-bottom:2px;}
+
+/* ── CHECKLIST ── */
+.cl-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.cl-item:last-child{border-bottom:none;}
+.cl-chk{width:20px;height:20px;min-width:20px;border:2px solid var(--border);border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s;background:var(--surface);}
+.cl-chk.ok{border-color:var(--grn);background:var(--grn);}
+.cl-chk.ng{border-color:var(--red);background:var(--red);}
+.cl-chk.na{border-color:var(--muted);background:var(--muted);}
+.cl-label{flex:1;font-size:13px;line-height:1.5;}
+.cl-label .cl-cat{font-size:10px;color:var(--muted);display:block;}
+.cl-status{display:flex;gap:4px;margin-left:4px;}
+.cl-status button{padding:3px 7px;border:1px solid var(--border);border-radius:4px;font-size:10px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--surface);color:var(--muted);transition:.2s;}
+.cl-status button.ok{border-color:var(--grn);background:rgba(34,197,94,.15);color:var(--grn);}
+.cl-status button.ng{border-color:var(--red);background:rgba(255,68,68,.15);color:var(--red);}
+.cl-status button.na{border-color:var(--muted);background:rgba(125,133,144,.15);color:var(--muted);}
+.ng-note{width:100%;margin-top:6px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--txt);font-size:12px;font-family:inherit;resize:vertical;}
+.ng-row{margin-top:6px;display:none;}
+
+/* ── PHOTO ── */
+.photo-area{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.photo-thumb{width:80px;height:80px;border-radius:6px;object-fit:cover;border:1px solid var(--border);cursor:pointer;}
+.photo-add{width:80px;height:80px;border-radius:6px;border:2px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:10px;gap:4px;transition:.2s;}
+.photo-add:hover{border-color:var(--or);color:var(--or);}
+#photo-input{display:none;}
+
+/* ── RISK MATRIX ── */
+.risk-matrix{display:grid;grid-template-columns:auto repeat(4,1fr);gap:2px;font-size:11px;margin:8px 0;}
+.rm-cell{padding:6px 4px;text-align:center;border-radius:3px;font-weight:700;}
+.rm-head{background:var(--surface);color:var(--muted);}
+.rm-label{background:var(--surface);color:var(--muted);writing-mode:initial;display:flex;align-items:center;justify-content:center;}
+.rm-1{background:rgba(34,197,94,.2);color:var(--grn);}
+.rm-2{background:rgba(234,179,8,.2);color:#EAB308;}
+.rm-3{background:rgba(255,107,0,.2);color:var(--or);}
+.rm-4{background:rgba(255,68,68,.2);color:var(--red);}
+.risk-sel-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0;}
+.risk-sel-row label{font-size:12px;color:var(--muted);}
+.risk-sel-row select{background:var(--card);color:var(--txt);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:12px;font-family:inherit;}
+.risk-result{padding:8px 12px;border-radius:6px;font-weight:700;font-size:13px;display:inline-block;margin-top:6px;}
+
+/* ── AI PANEL ── */
+.ai-btn{background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid var(--blu);color:var(--blu);padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;width:100%;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.ai-btn:hover{background:rgba(59,130,246,.1);}
+.ai-btn:disabled{opacity:.5;cursor:not-allowed;}
+.ai-out{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px;margin-top:10px;font-size:13px;line-height:1.8;white-space:pre-wrap;min-height:80px;display:none;}
+.ai-loading{display:none;text-align:center;padding:20px;color:var(--muted);}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--blu);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── SUBMIT BTN ── */
+.submit-row{padding:12px;position:sticky;bottom:0;background:linear-gradient(transparent,var(--bg) 30%);}
+.btn-submit{width:100%;padding:14px;background:var(--or);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-submit:hover{background:#e55a00;}
+.btn-outline{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:8px 14px;font-size:12px;font-family:inherit;cursor:pointer;}
+.btn-outline:hover{border-color:var(--or);color:var(--or);}
+
+/* ── RECORDS ── */
+.rec-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;}
+.rec-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.rec-date{font-size:13px;font-weight:700;color:var(--wht);}
+.rec-type{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700;}
+.rec-type.daily{background:rgba(59,130,246,.2);color:var(--blu);}
+.rec-type.weekly{background:rgba(234,179,8,.2);color:#EAB308;}
+.rec-type.monthly{background:rgba(34,197,94,.2);color:var(--grn);}
+.rec-proj{font-size:12px;color:var(--muted);flex:1;}
+.rec-stats{display:flex;gap:10px;font-size:11px;color:var(--muted);}
+.rec-stats span{display:flex;align-items:center;gap:3px;}
+.rec-stats .ng{color:var(--red);}
+.rec-stats .ok{color:var(--grn);}
+.rec-actions{display:flex;gap:6px;margin-top:8px;}
+
+/* ── PROGRESS ── */
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin:8px 0;}
+.progress-fill{height:100%;background:var(--grn);transition:.3s;}
+
+/* ── MODAL ── */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:16px;}
+.modal-ov.open{display:flex;}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:12px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;}
+.modal-hd{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-hd h3{font-size:14px;font-weight:700;}
+.modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 4px;}
+.modal-body{padding:16px;}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;opacity:0;transition:.3s;z-index:300;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:40px 20px;color:var(--muted);}
+.empty-icon{font-size:40px;margin-bottom:8px;}
+
+/* ── TAGS ── */
+.tag{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;}
+.tag-ng{background:rgba(255,68,68,.2);color:var(--red);}
+.tag-ok{background:rgba(34,197,94,.2);color:var(--grn);}
+.tag-na{background:rgba(125,133,144,.2);color:var(--muted);}
+
+/* ── FORM ── */
+.form-row{margin-bottom:10px;}
+.form-row label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:700;}
+.form-row input,.form-row textarea,.form-row select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--txt);font-size:13px;font-family:inherit;}
+.form-row textarea{resize:vertical;min-height:70px;}
+
+/* ── STATS ── */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.stat-box{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
+.stat-val{font-size:24px;font-weight:900;font-family:'Oswald',sans-serif;}
+.stat-lbl{font-size:10px;color:var(--muted);margin-top:2px;}
+.stat-box.warn .stat-val{color:var(--red);}
+.stat-box.ok .stat-val{color:var(--grn);}
+
+@media(max-width:480px){
+  .wt-grid{grid-template-columns:repeat(2,1fr);}
+  .hd-nav a{font-size:10px;padding:4px 7px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-icon">🔍</div>
+  <div class="hd-title">安全パトロール</div>
+  <nav class="hd-nav">
+    <a href="index.html">📋 アンケート</a>
+    <a href="ky.html">⚡ KY活動</a>
+    <a href="admin.html">⚙ 管理者</a>
+  </nav>
+</header>
+
+<!-- 工事・点検種別バー -->
+<div class="proj-bar">
+  <div>
+    <div class="type-label">点検対象工事</div>
+    <select id="proj-sel" onchange="onProjChange()">
+      <option value="">工事を選択してください</option>
+    </select>
+  </div>
+  <div>
+    <div class="type-label">点検種別</div>
+    <div style="display:flex;gap:4px;">
+      <button class="type-btn active" onclick="setType('daily',this)">日常</button>
+      <button class="type-btn" onclick="setType('weekly',this)">週次</button>
+      <button class="type-btn" onclick="setType('monthly',this)">月次</button>
+    </div>
+  </div>
+  <div>
+    <div class="type-label">工事種別</div>
+    <div style="display:flex;gap:4px;">
+      <button class="type-btn active" id="btn-civil" onclick="setConstructType('civil')">土木</button>
+      <button class="type-btn" id="btn-building" onclick="setConstructType('building')">建築</button>
+    </div>
+  </div>
+</div>
+
+<!-- メインタブ -->
+<div class="tab-nav">
+  <button class="active" onclick="switchTab('inspect',this)">📋 点検実施</button>
+  <button onclick="switchTab('risk',this)">⚠️ リスク評価</button>
+  <button onclick="switchTab('ai',this)">🤖 AI分析</button>
+  <button onclick="switchTab('records',this)">📁 記録一覧</button>
+</div>
+
+<!-- ── TAB: 点検実施 ── -->
+<div id="tab-inspect" class="tab-content active">
+
+  <!-- 工種選択 -->
+  <div class="sec">
+    <div class="sec-hd" onclick="toggleSec(this)">
+      🏗 点検工種の選択
+      <span class="sec-badge" id="wt-badge">0選択</span>
+    </div>
+    <div class="sec-body">
+      <div id="wt-grid" class="wt-grid"></div>
+    </div>
+  </div>
+
+  <!-- チェックリスト -->
+  <div class="sec">
+    <div class="sec-hd" onclick="toggleSec(this)">
+      ✅ 安全チェックリスト
+      <span class="sec-badge" id="cl-badge">0 / 0</span>
+    </div>
+    <div class="sec-body" id="cl-body">
+      <div class="empty"><div class="empty-icon">☝️</div>工種を選択してください</div>
+    </div>
+  </div>
+
+  <!-- 写真記録 -->
+  <div class="sec">
+    <div class="sec-hd" onclick="toggleSec(this)">
+      📷 写真記録
+      <span class="sec-badge" id="photo-badge">0枚</span>
+    </div>
+    <div class="sec-body">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">不具合箇所・施工状況などを撮影してください</p>
+      <div class="photo-area" id="photo-area">
+        <label class="photo-add" for="photo-input">
+          <span style="font-size:24px;">📷</span>
+          <span>写真を追加</span>
+        </label>
+        <input type="file" id="photo-input" accept="image/*" capture="environment" multiple onchange="addPhotos(this)">
+      </div>
+    </div>
+  </div>
+
+  <!-- 総合コメント -->
+  <div class="sec">
+    <div class="sec-hd" onclick="toggleSec(this)">💬 総合コメント・特記事項</div>
+    <div class="sec-body">
+      <textarea id="patrol-comment" class="form-row" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px;color:var(--txt);font-family:inherit;font-size:13px;min-height:80px;resize:vertical;" placeholder="本日の特記事項、指示事項、気になる点など自由に記入してください"></textarea>
+    </div>
+  </div>
+
+  <div class="submit-row">
+    <button class="btn-submit" onclick="savePatrol()">
+      💾 点検記録を保存する
+    </button>
+  </div>
+</div>
+
+<!-- ── TAB: リスク評価 ── -->
+<div id="tab-risk" class="tab-content">
+
+  <div class="sec">
+    <div class="sec-hd">⚠️ リスクアセスメントマトリクス</div>
+    <div class="sec-body">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">NGだった項目についてリスクレベルを評価してください（重篤度×発生確率）</p>
+      <div class="risk-matrix" id="risk-matrix-disp">
+        <div class="rm-cell rm-head"></div>
+        <div class="rm-cell rm-head">確率①<br><span style="font-size:9px">ほぼない</span></div>
+        <div class="rm-cell rm-head">確率②<br><span style="font-size:9px">時々</span></div>
+        <div class="rm-cell rm-head">確率③<br><span style="font-size:9px">たまに</span></div>
+        <div class="rm-cell rm-head">確率④<br><span style="font-size:9px">頻繁</span></div>
+        <div class="rm-cell rm-label">重篤①<br><span style="font-size:9px">軽微</span></div>
+        <div class="rm-cell rm-1">低①</div><div class="rm-cell rm-1">低②</div><div class="rm-cell rm-2">中③</div><div class="rm-cell rm-2">中④</div>
+        <div class="rm-cell rm-label">重篤②<br><span style="font-size:9px">中程度</span></div>
+        <div class="rm-cell rm-1">低②</div><div class="rm-cell rm-2">中④</div><div class="rm-cell rm-3">高⑥</div><div class="rm-cell rm-3">高⑧</div>
+        <div class="rm-cell rm-label">重篤③<br><span style="font-size:9px">重大</span></div>
+        <div class="rm-cell rm-2">中③</div><div class="rm-cell rm-3">高⑥</div><div class="rm-cell rm-3">高⑨</div><div class="rm-cell rm-4">極⑫</div>
+        <div class="rm-cell rm-label">重篤④<br><span style="font-size:9px">致命的</span></div>
+        <div class="rm-cell rm-2">中④</div><div class="rm-cell rm-3">高⑧</div><div class="rm-cell rm-4">極⑫</div><div class="rm-cell rm-4">極⑯</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd">📝 NG項目のリスク評価入力</div>
+    <div class="sec-body" id="risk-items-body">
+      <div class="empty"><div class="empty-icon">✅</div>NG項目がありません<br><span style="font-size:12px;color:var(--muted)">点検実施タブでNG項目を登録してください</span></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd">📊 リスク集計</div>
+    <div class="sec-body" id="risk-summary">
+      <div class="stats-row">
+        <div class="stat-box warn"><div class="stat-val" id="risk-count-ex">0</div><div class="stat-lbl">極リスク</div></div>
+        <div class="stat-box"><div class="stat-val" id="risk-count-hi" style="color:var(--or)">0</div><div class="stat-lbl">高リスク</div></div>
+        <div class="stat-box ok"><div class="stat-val" id="risk-count-mid">0</div><div class="stat-lbl">中リスク</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB: AI分析 ── -->
+<div id="tab-ai" class="tab-content">
+
+  <div class="sec">
+    <div class="sec-hd">🤖 AIによる自動分析</div>
+    <div class="sec-body">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">点検結果をGemini AIが分析し、改善指示・注意事項を自動生成します。<br>事前に「管理者ページ」でGemini APIキーを設定してください。</p>
+      <button class="ai-btn" id="ai-analyze-btn" onclick="runAIAnalysis()">
+        <span>✨</span> AI分析を実行する
+      </button>
+      <div class="ai-loading" id="ai-loading">
+        <span class="spinner"></span>Gemini AIが分析中です...
+      </div>
+      <div class="ai-out" id="ai-output"></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd">📨 改善指示書の送信</div>
+    <div class="sec-body">
+      <div class="form-row">
+        <label>送信先メールアドレス（改行区切りで複数可）</label>
+        <textarea id="send-emails" rows="3" placeholder="例: site-manager@example.com&#10;safety@example.com"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="ai-btn" style="flex:1;" onclick="sendToGAS()">
+          <span>📤</span> GASで送信する
+        </button>
+        <button class="btn-outline" onclick="printReport()">🖨 印刷</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB: 記録一覧 ── -->
+<div id="tab-records" class="tab-content">
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+    <input type="text" id="rec-filter-proj" placeholder="🔍 工事名で絞り込み" oninput="renderRecords()" style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--txt);font-size:13px;font-family:inherit;min-width:120px;">
+    <select id="rec-filter-type" onchange="renderRecords()" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--txt);font-size:12px;font-family:inherit;">
+      <option value="">全種別</option>
+      <option value="daily">日常</option>
+      <option value="weekly">週次</option>
+      <option value="monthly">月次</option>
+    </select>
+    <button class="btn-outline" onclick="exportCSV()">⬇ CSV</button>
+  </div>
+  <div id="records-list"></div>
+</div>
+
+<!-- 記録詳細モーダル -->
+<div class="modal-ov" id="modal-detail">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3>📋 点検記録詳細</h3>
+      <button class="modal-close" onclick="closeModal('modal-detail')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-detail-body"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// データ定義
+// ══════════════════════════════════════════════════════
+
+var PATROL_KEY = 'patrol_records';
+var patrolType = 'daily';
+var constructType = 'civil';
+var selectedWorkTypes = [];
+var checkState = {};   // {itemKey: {status:'ok'|'ng'|'na', note:''}}
+var photos = [];       // base64[]
+var riskState = {};    // {itemKey: {severity:1, prob:1}}
+
+// ── 工種マスタ ──────────────────────────────────────
+var WORK_TYPES = {
+  civil: [
+    {id:'c01',name:'土工事'},
+    {id:'c02',name:'基礎・杭工事'},
+    {id:'c03',name:'コンクリート工事'},
+    {id:'c04',name:'仮設工事'},
+    {id:'c05',name:'舗装工事'},
+    {id:'c06',name:'橋梁工事'},
+    {id:'c07',name:'トンネル工事'},
+    {id:'c08',name:'河川・海岸工事'},
+    {id:'c09',name:'法面保護工事'},
+    {id:'c10',name:'管路・推進工事'},
+    {id:'c11',name:'電気・通信工事'},
+    {id:'c12',name:'解体工事'},
+    {id:'c13',name:'高所・足場作業'},
+    {id:'c14',name:'重機・クレーン作業'}
+  ],
+  building: [
+    {id:'b01',name:'仮設工事'},
+    {id:'b02',name:'土工・基礎工事'},
+    {id:'b03',name:'鉄筋工事'},
+    {id:'b04',name:'型枠工事'},
+    {id:'b05',name:'コンクリート工事'},
+    {id:'b06',name:'鉄骨工事'},
+    {id:'b07',name:'外装・外壁工事'},
+    {id:'b08',name:'内装工事'},
+    {id:'b09',name:'設備工事'},
+    {id:'b10',name:'屋根・防水工事'},
+    {id:'b11',name:'塗装工事'},
+    {id:'b12',name:'解体工事'},
+    {id:'b13',name:'高所・足場作業'},
+    {id:'b14',name:'重機・クレーン作業'}
+  ]
+};
+
+// ── チェックリストマスタ ─────────────────────────────
+var CHECKLISTS = {
+  // 土木
+  c01:[
+    {cat:'墜落・転落',text:'掘削箇所の養生・バリケードが設置されているか'},
+    {cat:'墜落・転落',text:'法面の崩壊防止措置（矢板・法留め）は適切か'},
+    {cat:'飛来落下',text:'掘削土砂の落下防止措置はあるか'},
+    {cat:'機械災害',text:'掘削機械の作業半径内への立入防止措置はあるか'},
+    {cat:'感電',text:'埋設物（ガス・電気・水道）の確認と保護措置はあるか'},
+    {cat:'健康障害',text:'粉塵・土砂による環境基準を超えていないか'}
+  ],
+  c02:[
+    {cat:'墜落・転落',text:'杭打機・掘削機の安全装置は正常か'},
+    {cat:'飛来落下',text:'杭の吊り上げ時の玉掛け資格者による作業か'},
+    {cat:'機械災害',text:'杭打機の転倒防止措置（アウトリガー展開等）は適切か'},
+    {cat:'感電',text:'近接電線への接触防止措置はあるか'},
+    {cat:'埋設物',text:'試掘調査・埋設物管理者への確認は済んでいるか'}
+  ],
+  c03:[
+    {cat:'墜落・転落',text:'打設作業中の型枠端部・開口部への転落防止措置はあるか'},
+    {cat:'崩壊',text:'型枠支保工の強度・変形確認は実施しているか'},
+    {cat:'健康障害',text:'コンクリートのアルカリによる皮膚保護（手袋等）はされているか'},
+    {cat:'機械災害',text:'ポンプ車・ミキサー車の安全確認は実施しているか'},
+    {cat:'はさまれ',text:'打設中のバイブレーター取扱いに注意しているか'}
+  ],
+  c04:[
+    {cat:'墜落・転落',text:'足場の手すり・中桟・幅木は設置されているか'},
+    {cat:'墜落・転落',text:'足場の最大積載荷重の表示はあるか'},
+    {cat:'崩壊',text:'足場の緊結・ジャッキベースの状態は適切か'},
+    {cat:'飛来落下',text:'足場からの工具・材料落下防止措置はあるか'},
+    {cat:'点検',text:'足場は組立・変更後・悪天候後に点検されているか'}
+  ],
+  c05:[
+    {cat:'機械災害',text:'舗装機械・ローラーの作業半径内への立入防止はあるか'},
+    {cat:'健康障害',text:'アスファルト合材の高温による火傷防止措置はあるか'},
+    {cat:'交通',text:'交通誘導員の配置と保安施設の設置は適切か'},
+    {cat:'健康障害',text:'アスファルト臭・有害ガスの換気対策はあるか'},
+    {cat:'転倒',text:'舗装面の段差・滑りによる転倒防止措置はあるか'}
+  ],
+  c06:[
+    {cat:'墜落・転落',text:'橋梁上部での作業時の安全帯使用・親綱設置はあるか'},
+    {cat:'飛来落下',text:'部材・工具の落下防止措置（ネット・命綱等）はあるか'},
+    {cat:'崩壊',text:'架設時の仮設支保工・ベントの安全確認はされているか'},
+    {cat:'機械災害',text:'クレーン吊り作業時の立入禁止措置は適切か'},
+    {cat:'感電',text:'橋梁近接の送電線への接触防止距離は確保されているか'}
+  ],
+  c07:[
+    {cat:'酸欠',text:'坑内の酸素濃度測定（18%以上）は実施しているか'},
+    {cat:'健康障害',text:'粉塵・ガス濃度の管理と換気は適切か'},
+    {cat:'崩壊',text:'切羽の観察・支保工の設置・確認は適切か'},
+    {cat:'墜落・転落',text:'坑内通路・作業場の照明は適切か（作業面70lx以上）'},
+    {cat:'機械災害',text:'坑内機械作業の合図・連絡系統は確立しているか'}
+  ],
+  c08:[
+    {cat:'溺水',text:'水辺作業時のライフジャケット着用はされているか'},
+    {cat:'土砂崩壊',text:'法面・護岸の崩壊危険箇所の確認と措置はあるか'},
+    {cat:'機械災害',text:'浚渫機械・起重機船の安全確認はされているか'},
+    {cat:'天候',text:'増水・高波時の作業中止基準が定められているか'},
+    {cat:'感電',text:'水中ポンプ・電気機器の漏電防止措置はあるか'}
+  ],
+  c09:[
+    {cat:'墜落・転落',text:'急傾斜地での作業時の安全帯・親綱の設置はあるか'},
+    {cat:'崩壊',text:'法面の亀裂・湧水・不安定箇所の点検はされているか'},
+    {cat:'機械災害',text:'吹付機械・斜面機械の転倒防止措置はあるか'},
+    {cat:'飛来落下',text:'落石防護ネット・防護柵の状態は適切か'},
+    {cat:'健康障害',text:'モルタル・コンクリート吹付時の飛散防護はあるか'}
+  ],
+  c10:[
+    {cat:'酸欠',text:'管内作業前の酸素・硫化水素濃度測定は実施しているか'},
+    {cat:'墜落・転落',text:'開口部（マンホール等）の養生・表示は適切か'},
+    {cat:'機械災害',text:'推進機・ジャッキの操作は有資格者が行っているか'},
+    {cat:'感電',text:'地下埋設電気設備への接触防止措置はあるか'},
+    {cat:'土砂崩壊',text:'立坑・推進坑の地山崩壊防止措置は適切か'}
+  ],
+  c11:[
+    {cat:'感電',text:'活線近接作業時の絶縁防護具・活線作業車の使用はあるか'},
+    {cat:'感電',text:'停電作業時の検電・接地・施錠の3点確認はされているか'},
+    {cat:'墜落・転落',text:'電柱・鉄塔上作業時の安全帯使用はされているか'},
+    {cat:'飛来落下',text:'工具・材料の落下防止措置はあるか'},
+    {cat:'資格',text:'電気工事士資格を持つ者が作業しているか'}
+  ],
+  c12:[
+    {cat:'崩壊',text:'解体順序計画に従った作業が行われているか'},
+    {cat:'飛来落下',text:'解体材・コンクリート片の飛散防止養生はあるか'},
+    {cat:'健康障害',text:'アスベスト含有材の事前調査・適切な処理はされているか'},
+    {cat:'機械災害',text:'解体機械の作業半径内立入禁止措置は適切か'},
+    {cat:'感電',text:'電気・ガス・水道の供給停止確認はされているか'}
+  ],
+  c13:[
+    {cat:'墜落・転落',text:'高所作業（2m以上）での安全帯・安全ブロック使用はされているか'},
+    {cat:'墜落・転落',text:'開口部・端部には適切な手すり・覆いがあるか'},
+    {cat:'墜落・転落',text:'脚立使用時の開脚角度・最上段への乗り上げ禁止が守られているか'},
+    {cat:'飛来落下',text:'高所からの工具・材料の落下防止措置はあるか'},
+    {cat:'強風',text:'強風時（10m/s以上）の高所作業中止基準が守られているか'}
+  ],
+  c14:[
+    {cat:'機械災害',text:'クレーン・重機の始業点検は実施しているか'},
+    {cat:'機械災害',text:'吊り荷の下・旋回範囲内への立入禁止措置はあるか'},
+    {cat:'機械災害',text:'玉掛け作業は有資格者が行っているか'},
+    {cat:'機械災害',text:'重機の誘導員は配置されているか'},
+    {cat:'転倒',text:'クレーン・重機のアウトリガー展開と地盤養生は適切か'},
+    {cat:'過負荷',text:'定格荷重を超える吊り上げ作業は行われていないか'}
+  ],
+  // 建築
+  b01:[
+    {cat:'墜落・転落',text:'仮設足場の手すり・中桟・幅木は設置されているか'},
+    {cat:'墜落・転落',text:'開口部・スリーブには養生蓋・手すりが設置されているか'},
+    {cat:'崩壊',text:'仮設施設（事務所・仮囲い）の安全確認は実施しているか'},
+    {cat:'飛来落下',text:'仮囲いの高さ・強度は適切か（高さ1.8m以上）'},
+    {cat:'交通',text:'搬出入口の交通誘導員の配置と標識設置は適切か'}
+  ],
+  b02:[
+    {cat:'墜落・転落',text:'掘削箇所の養生・転落防止柵は設置されているか'},
+    {cat:'崩壊',text:'山留め壁・腹起し・切梁の状態は適切か'},
+    {cat:'機械災害',text:'バックホウ等の作業半径内への立入禁止はあるか'},
+    {cat:'感電',text:'埋設管・既存電線の確認と保護措置はあるか'},
+    {cat:'崩壊',text:'根切り底面の状態（ボイリング・ヒービング）に問題はないか'}
+  ],
+  b03:[
+    {cat:'墜落・転落',text:'配筋作業時の足場・作業床は適切に設置されているか'},
+    {cat:'刺傷',text:'鉄筋端部のキャップ取付けはされているか'},
+    {cat:'はさまれ',text:'鉄筋の組立・解体時の合図・連絡は適切か'},
+    {cat:'飛来落下',text:'吊り込み時の玉掛け状態・立入禁止措置はあるか'},
+    {cat:'転倒',text:'鉄筋材料の倒壊防止措置（結束・ストッパー）はあるか'}
+  ],
+  b04:[
+    {cat:'崩壊',text:'型枠支保工の計算書に基づく施工はされているか'},
+    {cat:'崩壊',text:'支保工の沈下・変形の有無を打設前に確認しているか'},
+    {cat:'墜落・転落',text:'型枠組立・解体時の高所作業での安全帯使用はされているか'},
+    {cat:'飛来落下',text:'型枠解体時の落下防止措置はあるか'},
+    {cat:'機械災害',text:'型枠材の揚重時の立入禁止・玉掛け確認はされているか'}
+  ],
+  b05:[
+    {cat:'崩壊',text:'打設前の型枠・支保工の最終確認は実施しているか'},
+    {cat:'墜落・転落',text:'ポンプ筒先作業者の安全帯・親綱の設置はあるか'},
+    {cat:'健康障害',text:'コンクリートのアルカリによる皮膚保護はされているか'},
+    {cat:'機械災害',text:'ポンプ車・ミキサー車の安全距離・誘導員はいるか'},
+    {cat:'崩壊',text:'打設中の型枠変形・沈下の監視は行われているか'}
+  ],
+  b06:[
+    {cat:'墜落・転落',text:'鉄骨建方時の安全帯・親綱ガイドウェイの設置はあるか'},
+    {cat:'飛来落下',text:'ボルト締め・溶接時の工具落下防止措置はあるか'},
+    {cat:'崩壊',text:'建方完了までの仮ボルトの本数・配置は適切か'},
+    {cat:'機械災害',text:'クレーン吊り作業時の立入禁止・玉掛けの確認はあるか'},
+    {cat:'火災',text:'溶接・溶断時の火気養生・消火器の配備はあるか'}
+  ],
+  b07:[
+    {cat:'墜落・転落',text:'外部足場の手すり・幅木の状態は適切か'},
+    {cat:'飛来落下',text:'外壁材・ガラスの落下防止ネットは設置されているか'},
+    {cat:'強風',text:'強風時の作業中止・足場の点検は実施されているか'},
+    {cat:'機械災害',text:'ゴンドラ・高所作業車の点検は実施しているか'},
+    {cat:'健康障害',text:'シーリング・塗料等の有機溶剤に対する換気・保護具使用はあるか'}
+  ],
+  b08:[
+    {cat:'健康障害',text:'内装材（接着剤・塗料）使用時の換気はされているか'},
+    {cat:'火災',text:'ウレタン吹付時の火気厳禁措置はあるか'},
+    {cat:'墜落・転落',text:'天井作業時の脚立・足場の使用状態は適切か'},
+    {cat:'はさまれ',text:'壁・天井ボードの切断時の工具安全使用はされているか'},
+    {cat:'健康障害',text:'粉塵（グラスウール・石膏ボード）に対する防塵マスクの使用はあるか'}
+  ],
+  b09:[
+    {cat:'感電',text:'仮設電気設備の漏電遮断器・アース取付けは適切か'},
+    {cat:'感電',text:'電気工事は有資格者（電気工事士）が施工しているか'},
+    {cat:'酸欠',text:'地下ピット・機械室内作業前の酸素濃度確認はされているか'},
+    {cat:'飛来落下',text:'配管・配線の天井作業時の工具落下防止はあるか'},
+    {cat:'火災',text:'ガス配管工事時の火気管理・ガス漏れ確認はされているか'}
+  ],
+  b10:[
+    {cat:'墜落・転落',text:'屋根上作業時の安全帯・親綱の設置はあるか'},
+    {cat:'墜落・転落',text:'天窓・開口部への転落防止措置はあるか'},
+    {cat:'火災',text:'防水工事（トーチ工法等）の火気養生・消火器配備はあるか'},
+    {cat:'健康障害',text:'防水材・接着剤の有機溶剤に対する保護具・換気はあるか'},
+    {cat:'強風',text:'強風時（10m/s以上）の屋根上作業中止は守られているか'}
+  ],
+  b11:[
+    {cat:'健康障害',text:'塗料・シンナーの有機溶剤管理（MSDS確認・換気・保護具）はされているか'},
+    {cat:'火災',text:'塗料保管場所の火気厳禁・消火設備の設置はあるか'},
+    {cat:'墜落・転落',text:'塗装作業のための足場・ゴンドラの状態は適切か'},
+    {cat:'健康障害',text:'塗料ミスト・粉塵対策（マスク・保護メガネ）はされているか'},
+    {cat:'飛来落下',text:'高所塗装時の飛散防止養生はあるか'}
+  ],
+  b12:[
+    {cat:'崩壊',text:'解体順序計画が守られているか'},
+    {cat:'健康障害',text:'アスベスト・PCB等の有害物質の事前調査・処理は適切か'},
+    {cat:'飛来落下',text:'解体材の飛散防止養生・ネットは設置されているか'},
+    {cat:'機械災害',text:'解体機械の作業半径内立入禁止措置はあるか'},
+    {cat:'感電',text:'電気・ガス・水道の供給停止確認はされているか'}
+  ],
+  b13:[
+    {cat:'墜落・転落',text:'高所作業（2m以上）での安全帯使用はされているか'},
+    {cat:'墜落・転落',text:'足場の手すり・中桟・幅木の設置は適切か'},
+    {cat:'墜落・転落',text:'脚立の正しい使用（開脚・最上段禁止）はされているか'},
+    {cat:'飛来落下',text:'高所からの工具・材料の落下防止措置はあるか'},
+    {cat:'強風',text:'強風時（10m/s以上）の高所作業中止が守られているか'}
+  ],
+  b14:[
+    {cat:'機械災害',text:'クレーン・重機の始業点検は実施しているか'},
+    {cat:'機械災害',text:'吊り荷の下への立入禁止措置はあるか'},
+    {cat:'機械災害',text:'玉掛け作業は有資格者が行っているか'},
+    {cat:'機械災害',text:'重機の誘導員は配置されているか'},
+    {cat:'転倒',text:'クレーン・重機のアウトリガー展開・地盤養生は適切か'}
+  ]
+};
+
+// ══════════════════════════════════════════════════════
+// 初期化
+// ══════════════════════════════════════════════════════
+
+window.addEventListener('DOMContentLoaded', function(){
+  renderProjSel();
+  renderWorkTypes();
+  renderRecords();
+  loadEmailsFromSettings();
+});
+
+function loadEmailsFromSettings(){
+  var emails = typeof spGetAdminEmail === 'function' ? spGetAdminEmail() : '';
+  if(emails) document.getElementById('send-emails').value = emails;
+}
+
+function renderProjSel(){
+  var sel = document.getElementById('proj-sel');
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">工事を選択してください</option>';
+  var projs = typeof spGetActiveProjects === 'function' ? spGetActiveProjects() : [];
+  projs.forEach(function(p){
+    var o = document.createElement('option');
+    o.value = p.name; o.textContent = p.name; sel.appendChild(o);
+  });
+  if(cur) sel.value = cur;
+}
+
+function onProjChange(){
+  // 工事変更時にKY記録からの連携情報をロード（将来拡張）
+}
+
+function setType(type, btn){
+  patrolType = type;
+  document.querySelectorAll('.proj-bar .type-btn').forEach(function(b){
+    b.classList.remove('active');
+  });
+  btn.classList.add('active');
+}
+
+function setConstructType(type){
+  constructType = type;
+  document.getElementById('btn-civil').classList.toggle('active', type==='civil');
+  document.getElementById('btn-building').classList.toggle('active', type==='building');
+  selectedWorkTypes = [];
+  checkState = {};
+  renderWorkTypes();
+  renderChecklist();
+}
+
+// ══════════════════════════════════════════════════════
+// 工種・チェックリスト
+// ══════════════════════════════════════════════════════
+
+function renderWorkTypes(){
+  var grid = document.getElementById('wt-grid');
+  grid.innerHTML = '';
+  var types = WORK_TYPES[constructType];
+  types.forEach(function(wt, i){
+    var btn = document.createElement('button');
+    btn.className = 'wt-btn' + (selectedWorkTypes.indexOf(wt.id) >= 0 ? ' sel' : '');
+    btn.innerHTML = '<span class="wt-num">' + String(i+1).padStart(2,'0') + '</span>' + wt.name;
+    btn.onclick = function(){ toggleWorkType(wt.id); };
+    grid.appendChild(btn);
+  });
+  document.getElementById('wt-badge').textContent = selectedWorkTypes.length + '選択';
+}
+
+function toggleWorkType(id){
+  var idx = selectedWorkTypes.indexOf(id);
+  if(idx >= 0) selectedWorkTypes.splice(idx, 1);
+  else selectedWorkTypes.push(id);
+  renderWorkTypes();
+  renderChecklist();
+}
+
+function renderChecklist(){
+  var body = document.getElementById('cl-body');
+  if(selectedWorkTypes.length === 0){
+    body.innerHTML = '<div class="empty"><div class="empty-icon">☝️</div>工種を選択してください</div>';
+    document.getElementById('cl-badge').textContent = '0 / 0';
+    return;
+  }
+  body.innerHTML = '';
+  var allItems = [];
+  selectedWorkTypes.forEach(function(wtId){
+    var items = CHECKLISTS[wtId] || [];
+    var wtName = getWorkTypeName(wtId);
+    items.forEach(function(item, i){
+      allItems.push({key: wtId + '_' + i, wtId: wtId, wtName: wtName, item: item});
+    });
+  });
+  if(allItems.length === 0){
+    body.innerHTML = '<div class="empty">チェック項目がありません</div>';
+    return;
+  }
+  var lastWt = '';
+  allItems.forEach(function(d){
+    if(d.wtId !== lastWt){
+      var hd = document.createElement('div');
+      hd.style.cssText = 'font-size:11px;font-weight:700;color:var(--or);padding:8px 0 4px;margin-top:4px;border-top:1px solid var(--border);';
+      if(lastWt) hd.style.marginTop = '12px';
+      hd.textContent = '▶ ' + d.wtName;
+      body.appendChild(hd);
+      lastWt = d.wtId;
+    }
+    var st = checkState[d.key] || {status:'', note:''};
+    var row = document.createElement('div');
+    row.className = 'cl-item';
+    row.id = 'cl-row-' + d.key;
+    row.innerHTML =
+      '<div class="cl-label">' +
+        '<span class="cl-cat">' + d.item.cat + '</span>' + d.item.text +
+        '<div class="ng-row" id="ng-row-' + d.key + '">' +
+          '<textarea class="ng-note" placeholder="NG内容・状況を入力..." id="ng-note-' + d.key + '" oninput="saveNote(\'' + d.key + '\')">' + (st.note||'') + '</textarea>' +
+        '</div>' +
+      '</div>' +
+      '<div class="cl-status">' +
+        '<button class="' + (st.status==='ok'?'ok':'') + '" onclick="setCheck(\'' + d.key + '\',\'ok\')">OK</button>' +
+        '<button class="' + (st.status==='ng'?'ng':'') + '" onclick="setCheck(\'' + d.key + '\',\'ng\')">NG</button>' +
+        '<button class="' + (st.status==='na'?'na':'') + '" onclick="setCheck(\'' + d.key + '\',\'na\')">―</button>' +
+      '</div>';
+    body.appendChild(row);
+    if(st.status === 'ng') document.getElementById('ng-row-' + d.key).style.display = 'block';
+  });
+  updateClBadge(allItems);
+}
+
+function setCheck(key, status){
+  if(!checkState[key]) checkState[key] = {status:'', note:''};
+  checkState[key].status = status;
+  // ボタン更新
+  var row = document.getElementById('cl-row-' + key);
+  if(!row) return;
+  var btns = row.querySelectorAll('.cl-status button');
+  var states = ['ok','ng','na'];
+  btns.forEach(function(b, i){ b.className = (states[i] === status ? states[i] : ''); });
+  // NG欄
+  var ngRow = document.getElementById('ng-row-' + key);
+  if(ngRow) ngRow.style.display = (status === 'ng' ? 'block' : 'none');
+  // バッジ更新
+  updateClBadgeFromState();
+  // リスクタブも更新
+  renderRiskItems();
+}
+
+function saveNote(key){
+  var ta = document.getElementById('ng-note-' + key);
+  if(ta && checkState[key]) checkState[key].note = ta.value;
+}
+
+function updateClBadge(allItems){
+  var done = allItems.filter(function(d){ return checkState[d.key] && checkState[d.key].status; }).length;
+  document.getElementById('cl-badge').textContent = done + ' / ' + allItems.length;
+}
+
+function updateClBadgeFromState(){
+  var total = 0, done = 0;
+  selectedWorkTypes.forEach(function(wtId){
+    var items = CHECKLISTS[wtId] || [];
+    items.forEach(function(_, i){
+      total++;
+      if(checkState[wtId + '_' + i] && checkState[wtId + '_' + i].status) done++;
+    });
+  });
+  document.getElementById('cl-badge').textContent = done + ' / ' + total;
+}
+
+function getWorkTypeName(id){
+  var all = WORK_TYPES.civil.concat(WORK_TYPES.building);
+  var wt = all.filter(function(w){ return w.id === id; })[0];
+  return wt ? wt.name : id;
+}
+
+// ══════════════════════════════════════════════════════
+// 写真
+// ══════════════════════════════════════════════════════
+
+function addPhotos(input){
+  var files = Array.from(input.files);
+  var total = files.length;
+  var done = 0;
+  files.forEach(function(file){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      photos.push(e.target.result);
+      done++;
+      if(done === total) renderPhotoArea();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function renderPhotoArea(){
+  var area = document.getElementById('photo-area');
+  area.innerHTML = '';
+  photos.forEach(function(src, i){
+    var img = document.createElement('img');
+    img.src = src;
+    img.className = 'photo-thumb';
+    img.title = '長押しで削除';
+    img.addEventListener('dblclick', function(){ removePhoto(i); });
+    area.appendChild(img);
+  });
+  var add = document.createElement('label');
+  add.className = 'photo-add';
+  add.htmlFor = 'photo-input';
+  add.innerHTML = '<span style="font-size:24px;">📷</span><span>写真を追加</span>';
+  area.appendChild(add);
+  var inp = document.createElement('input');
+  inp.type = 'file';
+  inp.id = 'photo-input';
+  inp.accept = 'image/*';
+  inp.setAttribute('capture','environment');
+  inp.multiple = true;
+  inp.onchange = function(){ addPhotos(this); };
+  inp.style.display = 'none';
+  area.appendChild(inp);
+  document.getElementById('photo-badge').textContent = photos.length + '枚';
+}
+
+function removePhoto(i){
+  photos.splice(i,1);
+  renderPhotoArea();
+}
+
+// ══════════════════════════════════════════════════════
+// リスク評価
+// ══════════════════════════════════════════════════════
+
+function renderRiskItems(){
+  var body = document.getElementById('risk-items-body');
+  var ngItems = [];
+  selectedWorkTypes.forEach(function(wtId){
+    var items = CHECKLISTS[wtId] || [];
+    items.forEach(function(item, i){
+      var key = wtId + '_' + i;
+      if(checkState[key] && checkState[key].status === 'ng'){
+        ngItems.push({key:key, wtName:getWorkTypeName(wtId), item:item, note:(checkState[key]||{}).note||''});
+      }
+    });
+  });
+  if(ngItems.length === 0){
+    body.innerHTML = '<div class="empty"><div class="empty-icon">✅</div>NG項目がありません</div>';
+    updateRiskSummary();
+    return;
+  }
+  body.innerHTML = '';
+  ngItems.forEach(function(d){
+    var rs = riskState[d.key] || {severity:1, prob:1};
+    var score = rs.severity * rs.prob;
+    var level = score <= 3 ? '低' : score <= 6 ? '中' : score <= 9 ? '高' : '極';
+    var col = score <= 3 ? 'var(--grn)' : score <= 6 ? '#EAB308' : score <= 9 ? 'var(--or)' : 'var(--red)';
+    var div = document.createElement('div');
+    div.style.cssText = 'background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px;';
+    div.innerHTML =
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">' + d.wtName + ' ▶ ' + d.item.cat + '</div>' +
+      '<div style="font-size:13px;margin-bottom:8px;">' + d.item.text + '</div>' +
+      (d.note ? '<div style="font-size:12px;color:var(--or);margin-bottom:8px;">📌 ' + d.note + '</div>' : '') +
+      '<div class="risk-sel-row">' +
+        '<label>重篤度</label>' +
+        '<select onchange="setRisk(\'' + d.key + '\',\'severity\',this.value)">' +
+          '<option value="1"' + (rs.severity==1?' selected':'') + '>①軽微</option>' +
+          '<option value="2"' + (rs.severity==2?' selected':'') + '>②中程度</option>' +
+          '<option value="3"' + (rs.severity==3?' selected':'') + '>③重大</option>' +
+          '<option value="4"' + (rs.severity==4?' selected':'') + '>④致命的</option>' +
+        '</select>' +
+        '<label>発生確率</label>' +
+        '<select onchange="setRisk(\'' + d.key + '\',\'prob\',this.value)">' +
+          '<option value="1"' + (rs.prob==1?' selected':'') + '>①ほぼない</option>' +
+          '<option value="2"' + (rs.prob==2?' selected':'') + '>②時々</option>' +
+          '<option value="3"' + (rs.prob==3?' selected':'') + '>③たまに</option>' +
+          '<option value="4"' + (rs.prob==4?' selected':'') + '>④頻繁</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="risk-result" style="color:' + col + ';background:rgba(255,255,255,.05);">リスクレベル: ' + level + '（スコア' + score + '）</div>';
+    body.appendChild(div);
+  });
+  updateRiskSummary();
+}
+
+function setRisk(key, field, value){
+  if(!riskState[key]) riskState[key] = {severity:1, prob:1};
+  riskState[key][field] = parseInt(value);
+  renderRiskItems();
+}
+
+function updateRiskSummary(){
+  var ex=0,hi=0,mid=0;
+  Object.keys(riskState).forEach(function(k){
+    var rs = riskState[k];
+    if(checkState[k] && checkState[k].status === 'ng'){
+      var score = rs.severity * rs.prob;
+      if(score >= 12) ex++;
+      else if(score >= 6) hi++;
+      else if(score >= 3) mid++;
+    }
+  });
+  document.getElementById('risk-count-ex').textContent = ex;
+  document.getElementById('risk-count-hi').textContent = hi;
+  document.getElementById('risk-count-mid').textContent = mid;
+}
+
+// ══════════════════════════════════════════════════════
+// AI分析
+// ══════════════════════════════════════════════════════
+
+async function runAIAnalysis(){
+  var apiKey = (typeof spGetGeminiApiKey === 'function' ? spGetGeminiApiKey() : localStorage.getItem('ky_gemini_api_key')) || '';
+  if(!apiKey){ showToast('管理者ページでGemini APIキーを設定してください'); return; }
+  var proj = document.getElementById('proj-sel').value || '（工事未選択）';
+  var typeLabel = {daily:'日常',weekly:'週次',monthly:'月次'}[patrolType] || patrolType;
+  var ngList = [];
+  selectedWorkTypes.forEach(function(wtId){
+    var items = CHECKLISTS[wtId] || [];
+    items.forEach(function(item, idx){
+      var key = wtId + '_' + idx;
+      if(checkState[key] && checkState[key].status === 'ng'){
+        var rs = riskState[key] || {severity:1, prob:1};
+        var score = rs.severity * rs.prob;
+        ngList.push('・[' + getWorkTypeName(wtId) + '/' + item.cat + '] ' + item.text +
+          (checkState[key].note ? '（状況: ' + checkState[key].note + '）' : '') +
+          '（リスクスコア: ' + score + '）');
+      }
+    });
+  });
+  var okCount = Object.values(checkState).filter(function(s){ return s.status==='ok'; }).length;
+  var naCount = Object.values(checkState).filter(function(s){ return s.status==='na'; }).length;
+  var lines = [
+    '建設現場の安全パトロール結果を分析し、改善指示書を作成してください。',
+    '【工事名】' + proj,
+    '【点検種別】' + typeLabel + '点検',
+    '【工事種別】' + (constructType==='civil'?'土木':'建築'),
+    '【点検工種】' + selectedWorkTypes.map(getWorkTypeName).join('、'),
+    '【OK項目数】' + okCount + '件',
+    '【対象外項目数】' + naCount + '件',
+    '【NG項目一覧（' + ngList.length + '件）】',
+    ngList.length > 0 ? ngList.join('\n') : '（なし）',
+    '',
+    '以下の形式で改善指示書を作成してください：',
+    '1. 総合評価（安全状況の概要、2〜3文）',
+    '2. 緊急対応が必要な事項（高・極リスク項目）',
+    '3. 改善指示（各NG項目の具体的な是正措置）',
+    '4. 再発防止のための提言',
+    '5. 次回点検時の重点確認事項',
+    '',
+    '建設業安全衛生法・労働安全衛生規則に基づき、具体的で実用的な内容で記述してください。'
+  ];
+  var aiPrompt = lines.join('\n');
+  var btn = document.getElementById('ai-analyze-btn');
+  var loading = document.getElementById('ai-loading');
+  var output = document.getElementById('ai-output');
+  btn.disabled = true;
+  loading.style.display = 'block';
+  output.style.display = 'none';
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
+  fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({contents:[{parts:[{text:aiPrompt}]}]})
+  })
+  .then(function(res){ return res.json(); })
+  .then(function(data){
+    if(data.candidates && data.candidates[0]){
+      output.textContent = data.candidates[0].content.parts[0].text;
+      output.style.display = 'block';
+      showToast('AI分析が完了しました');
+    } else {
+      output.textContent = 'AIからの応答を取得できませんでした。APIキーを確認してください。';
+      output.style.display = 'block';
+    }
+    btn.disabled = false;
+    loading.style.display = 'none';
+  })
+  .catch(function(e){
+    output.textContent = 'エラー: ' + e.message;
+    output.style.display = 'block';
+    btn.disabled = false;
+    loading.style.display = 'none';
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// 保存・送信
+// ══════════════════════════════════════════════════════
+
+function savePatrol(){
+  var proj = document.getElementById('proj-sel').value;
+  if(!proj){ showToast('工事を選択してください'); return; }
+  if(selectedWorkTypes.length === 0){ showToast('工種を選択してください'); return; }
+  var checkItems = [];
+  var ngCount = 0, okCount = 0, naCount = 0;
+  selectedWorkTypes.forEach(function(wtId){
+    var items = CHECKLISTS[wtId] || [];
+    items.forEach(function(item, i){
+      var key = wtId + '_' + i;
+      var st = checkState[key] || {status:'', note:''};
+      var rs = riskState[key] || null;
+      checkItems.push({key:key, wtId:wtId, wtName:getWorkTypeName(wtId), cat:item.cat, text:item.text, status:st.status, note:st.note, risk:rs});
+      if(st.status === 'ng') ngCount++;
+      else if(st.status === 'ok') okCount++;
+      else if(st.status === 'na') naCount++;
+    });
+  });
+  var aiText = document.getElementById('ai-output').textContent || '';
+  var record = {
+    id: 'patrol_' + Date.now(),
+    savedAt: new Date().toISOString(),
+    project: proj,
+    type: patrolType,
+    constructType: constructType,
+    workTypes: selectedWorkTypes.map(function(id){ return {id:id, name:getWorkTypeName(id)}; }),
+    items: checkItems,
+    photos: photos.length,
+    comment: document.getElementById('patrol-comment').value,
+    aiAnalysis: aiText,
+    summary: {ok:okCount, ng:ngCount, na:naCount, total:checkItems.length},
+    gasSubmitted: false,
+    status: '未確認'
+  };
+  var records = getPatrolRecords();
+  records.unshift(record);
+  localStorage.setItem(PATROL_KEY, JSON.stringify(records));
+  showToast('✅ 点検記録を保存しました');
+  // リセット
+  checkState = {};
+  riskState = {};
+  photos = [];
+  document.getElementById('patrol-comment').value = '';
+  document.getElementById('photo-area').innerHTML = '<label class="photo-add" for="photo-input"><span style="font-size:24px;">📷</span><span>写真を追加</span></label><input type="file" id="photo-input" accept="image/*" capture="environment" multiple onchange="addPhotos(this)">';
+  document.getElementById('photo-badge').textContent = '0枚';
+  renderChecklist();
+  renderRiskItems();
+  renderRecords();
+  switchTab('records', document.querySelector('.tab-nav button:nth-child(4)'));
+}
+
+function getPatrolRecords(){
+  try{ return JSON.parse(localStorage.getItem(PATROL_KEY) || '[]'); } catch(e){ return []; }
+}
+
+async function sendToGAS(){
+  var gasUrl = typeof spGetGasUrl === 'function' ? spGetGasUrl() : (JSON.parse(localStorage.getItem('platform_settings')||'{}').gasUrl || '');
+  if(!gasUrl){ showToast('GAS URLが設定されていません'); return; }
+  var aiText = document.getElementById('ai-output').textContent || '';
+  if(!aiText){ showToast('先にAI分析を実行してください'); return; }
+  var emails = document.getElementById('send-emails').value.trim();
+  var proj = document.getElementById('proj-sel').value || '';
+  var payload = {
+    type:'patrol',
+    project: proj,
+    patrolType: patrolType,
+    date: new Date().toLocaleDateString('ja-JP'),
+    aiAnalysis: aiText,
+    to: emails
+  };
+  try{
+    await fetch(gasUrl, {method:'POST', body:JSON.stringify(payload), mode:'no-cors'});
+    showToast('✅ 改善指示書を送信しました');
+  } catch(e){
+    showToast('送信に失敗しました: ' + e.message);
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// 記録一覧
+// ══════════════════════════════════════════════════════
+
+function renderRecords(){
+  var list = document.getElementById('records-list');
+  var records = getPatrolRecords();
+  var filterProj = document.getElementById('rec-filter-proj').value.trim().toLowerCase();
+  var filterType = document.getElementById('rec-filter-type').value;
+  var filtered = records.filter(function(r){
+    if(filterProj && r.project.toLowerCase().indexOf(filterProj) < 0) return false;
+    if(filterType && r.type !== filterType) return false;
+    return true;
+  });
+  if(filtered.length === 0){
+    list.innerHTML = '<div class="empty"><div class="empty-icon">📁</div>記録がありません</div>';
+    return;
+  }
+  list.innerHTML = '';
+  filtered.forEach(function(r){
+    var d = new Date(r.savedAt);
+    var dateStr = d.getFullYear() + '/' + (d.getMonth()+1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    var typeLabels = {daily:'日常',weekly:'週次',monthly:'月次'};
+    var card = document.createElement('div');
+    card.className = 'rec-card';
+    card.innerHTML =
+      '<div class="rec-head">' +
+        '<div class="rec-date">' + dateStr + '</div>' +
+        '<div class="rec-type ' + r.type + '">' + (typeLabels[r.type]||r.type) + '</div>' +
+        '<div class="rec-proj">' + r.project + '</div>' +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">' +
+        (r.workTypes||[]).map(function(w){ return w.name; }).join(' / ') +
+      '</div>' +
+      '<div class="rec-stats">' +
+        '<span class="ok">✅ OK: ' + (r.summary.ok||0) + '</span>' +
+        '<span class="ng">❌ NG: ' + (r.summary.ng||0) + '</span>' +
+        '<span>― 対象外: ' + (r.summary.na||0) + '</span>' +
+        '<span>📷 ' + (r.photos||0) + '枚</span>' +
+        (r.aiAnalysis ? '<span>🤖 AI済</span>' : '') +
+      '</div>' +
+      '<div class="rec-actions">' +
+        '<button class="btn-outline" onclick="viewRecord(\'' + r.id + '\')">詳細</button>' +
+        '<button class="btn-outline" onclick="printRecord(\'' + r.id + '\')">🖨 印刷</button>' +
+        '<button class="btn-outline" style="color:var(--red);border-color:var(--red);" onclick="deleteRecord(\'' + r.id + '\')">削除</button>' +
+      '</div>';
+    list.appendChild(card);
+  });
+}
+
+function viewRecord(id){
+  var records = getPatrolRecords();
+  var r = records.filter(function(x){ return x.id === id; })[0];
+  if(!r) return;
+  var d = new Date(r.savedAt);
+  var dateStr = d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日';
+  var typeLabels = {daily:'日常',weekly:'週次',monthly:'月次'};
+  var body = document.getElementById('modal-detail-body');
+  var ngItems = (r.items||[]).filter(function(x){ return x.status==='ng'; });
+  body.innerHTML =
+    '<div style="font-size:12px;color:var(--muted);">' + dateStr + ' / ' + (typeLabels[r.type]||r.type) + '点検</div>' +
+    '<div style="font-size:16px;font-weight:700;margin:4px 0 10px;">' + r.project + '</div>' +
+    '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">' +
+      '<span class="tag tag-ok">✅ OK: ' + (r.summary.ok||0) + '</span>' +
+      '<span class="tag tag-ng">❌ NG: ' + (r.summary.ng||0) + '</span>' +
+      '<span class="tag tag-na">― : ' + (r.summary.na||0) + '</span>' +
+    '</div>' +
+    (ngItems.length > 0 ?
+      '<div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:6px;">❌ NG項目一覧</div>' +
+      ngItems.map(function(item){
+        var score = item.risk ? (item.risk.severity * item.risk.prob) : 0;
+        var lv = score >= 12 ? '極' : score >= 6 ? '高' : score >= 3 ? '中' : score > 0 ? '低' : '';
+        return '<div style="background:rgba(255,68,68,.08);border:1px solid rgba(255,68,68,.2);border-radius:6px;padding:8px;margin-bottom:6px;">' +
+          '<div style="font-size:11px;color:var(--muted);">' + item.wtName + ' ▶ ' + item.cat + (lv ? ' ／ リスク: ' + lv : '') + '</div>' +
+          '<div style="font-size:13px;">' + item.text + '</div>' +
+          (item.note ? '<div style="font-size:12px;color:var(--or);margin-top:4px;">📌 ' + item.note + '</div>' : '') +
+          '</div>';
+      }).join('') : '<div style="color:var(--grn);font-size:13px;margin-bottom:10px;">NG項目はありませんでした ✅</div>') +
+    (r.comment ? '<div style="margin-top:10px;"><div style="font-size:11px;color:var(--muted);margin-bottom:4px;">📝 コメント</div><div style="font-size:13px;background:var(--bg);border-radius:4px;padding:8px;">' + r.comment + '</div></div>' : '') +
+    (r.aiAnalysis ? '<div style="margin-top:10px;"><div style="font-size:11px;color:var(--muted);margin-bottom:4px;">🤖 AI分析結果</div><div style="font-size:12px;background:var(--bg);border-radius:4px;padding:8px;white-space:pre-wrap;max-height:200px;overflow-y:auto;">' + r.aiAnalysis + '</div></div>' : '');
+  document.getElementById('modal-detail').classList.add('open');
+}
+
+function deleteRecord(id){
+  if(!confirm('この記録を削除しますか？')) return;
+  var records = getPatrolRecords().filter(function(r){ return r.id !== id; });
+  localStorage.setItem(PATROL_KEY, JSON.stringify(records));
+  renderRecords();
+  showToast('記録を削除しました');
+}
+
+function printRecord(id){
+  var records = getPatrolRecords();
+  var r = records.filter(function(x){ return x.id === id; })[0];
+  if(!r) return;
+  var d = new Date(r.savedAt);
+  var dateStr = d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日';
+  var typeLabels = {daily:'日常',weekly:'週次',monthly:'月次'};
+  var coName = typeof spGetSetting === 'function' ? (spGetSetting('coName') || '') : '';
+  var ngItems = (r.items||[]).filter(function(x){ return x.status==='ng'; });
+  var w = window.open('','_blank');
+  w.document.write('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>安全パトロール記録</title><style>' +
+    'body{font-family:"Noto Sans JP",sans-serif;font-size:13px;color:#111;padding:20px;max-width:800px;margin:0 auto;}' +
+    'h1{font-size:18px;text-align:center;border-bottom:2px solid #333;padding-bottom:8px;}' +
+    '.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;font-size:12px;}' +
+    '.meta div{border:1px solid #ccc;padding:6px 10px;border-radius:4px;}' +
+    '.meta label{color:#666;font-size:10px;display:block;}' +
+    'table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px;}' +
+    'th{background:#333;color:#fff;padding:6px;text-align:left;}' +
+    'td{border:1px solid #ccc;padding:6px;}' +
+    '.ok{color:green;}.ng{color:red;font-weight:700;}.na{color:#999;}' +
+    '.ai-section{background:#f5f5f5;border:1px solid #ccc;border-radius:4px;padding:12px;margin:12px 0;white-space:pre-wrap;font-size:12px;line-height:1.8;}' +
+    '@media print{button{display:none!important;}}' +
+    '</style></head><body>' +
+    '<h1>安全パトロール記録</h1>' +
+    '<div class="meta">' +
+    '<div><label>実施日</label>' + dateStr + '</div>' +
+    '<div><label>点検種別</label>' + (typeLabels[r.type]||r.type) + '点検</div>' +
+    '<div><label>工事名</label>' + r.project + '</div>' +
+    '<div><label>会社名</label>' + coName + '</div>' +
+    '<div><label>工種</label>' + (r.workTypes||[]).map(function(w){return w.name;}).join(' / ') + '</div>' +
+    '<div><label>結果</label>OK: ' + (r.summary.ok||0) + '件 ／ NG: ' + (r.summary.ng||0) + '件 ／ 対象外: ' + (r.summary.na||0) + '件</div>' +
+    '</div>' +
+    (ngItems.length > 0 ?
+      '<h2 style="font-size:14px;margin-top:16px;color:red;">❌ NG項目一覧（' + ngItems.length + '件）</h2>' +
+      '<table><tr><th>工種</th><th>分類</th><th>チェック内容</th><th>状況メモ</th><th>リスク</th></tr>' +
+      ngItems.map(function(item){
+        var score = item.risk ? (item.risk.severity * item.risk.prob) : 0;
+        var lv = score >= 12 ? '極' : score >= 6 ? '高' : score >= 3 ? '中' : score > 0 ? '低' : '-';
+        return '<tr><td>' + item.wtName + '</td><td>' + item.cat + '</td><td>' + item.text + '</td><td>' + (item.note||'') + '</td><td>' + lv + '</td></tr>';
+      }).join('') + '</table>' : '<p style="color:green;">NG項目はありませんでした</p>') +
+    (r.comment ? '<h2 style="font-size:14px;margin-top:16px;">📝 特記事項</h2><p>' + r.comment + '</p>' : '') +
+    (r.aiAnalysis ? '<h2 style="font-size:14px;margin-top:16px;">🤖 AI分析・改善指示</h2><div class="ai-section">' + r.aiAnalysis + '</div>' : '') +
+    '<div style="margin-top:20px;border-top:1px solid #ccc;padding-top:12px;display:flex;gap:40px;">' +
+    '<div>点検者署名：_________________________</div>' +
+    '<div>確認者署名：_________________________</div></div>' +
+    '<script>window.onload=function(){window.print();}<\/script>' +
+    '</body></html>');
+  w.document.close();
+}
+
+function printReport(){
+  var records = getPatrolRecords();
+  if(records.length > 0) printRecord(records[0].id);
+  else showToast('保存された記録がありません');
+}
+
+function exportCSV(){
+  var records = getPatrolRecords();
+  if(records.length === 0){ showToast('記録がありません'); return; }
+  var rows = [['記録ID','日付','工事名','点検種別','工事種別','OK数','NG数','対象外','AI分析','コメント'].join(',')];
+  records.forEach(function(r){
+    var d = new Date(r.savedAt).toLocaleDateString('ja-JP');
+    rows.push([r.id,d,'"'+r.project+'"',r.type,r.constructType,r.summary.ok,r.summary.ng,r.summary.na,r.aiAnalysis?'あり':'なし','"'+(r.comment||'')+'"'].join(','));
+  });
+  var bom = new Uint8Array([0xEF,0xBB,0xBF]);
+  var blob = new Blob([bom, rows.join('\n')], {type:'text/csv;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'patrol_' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click(); URL.revokeObjectURL(url);
+  showToast('CSVをダウンロードしました');
+}
+
+// ══════════════════════════════════════════════════════
+// UI ユーティリティ
+// ══════════════════════════════════════════════════════
+
+function switchTab(id, btn){
+  document.querySelectorAll('.tab-content').forEach(function(el){ el.classList.remove('active'); });
+  document.querySelectorAll('.tab-nav button').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+  if(id === 'risk') renderRiskItems();
+  if(id === 'records') renderRecords();
+}
+
+function toggleSec(hd){
+  var body = hd.nextElementSibling;
+  body.style.display = body.style.display === 'none' ? '' : 'none';
+}
+
+function closeModal(id){
+  document.getElementById(id).classList.remove('open');
+}
+
+function showToast(msg){
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2500);
+}
+</script>
+</body>
+</html>
