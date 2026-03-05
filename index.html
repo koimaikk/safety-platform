@@ -49,6 +49,8 @@ textarea.inp{resize:vertical;min-height:60px;}
 .radio-btn input,.check-btn input{display:none;}
 .radio-btn.sel,.check-btn.sel{border-color:var(--or);background:rgba(255,107,0,.12);color:var(--or);}
 .radio-btn.sel-grn,.check-btn.sel-grn{border-color:var(--grn);background:rgba(34,197,94,.12);color:var(--grn);}
+.check-btn{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+.radio-btn{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 
 /* 署名 */
 #sig-canvas{border:1px solid var(--bor);border-radius:6px;background:#fff;touch-action:none;display:block;width:100%;cursor:crosshair;}
@@ -573,29 +575,35 @@ function renderQuals(){
   });
   var html = '';
   Object.keys(byCategory).forEach(function(cat){
-    html += '<div style="margin-bottom:12px;">';
-    html += '<div style="font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px;">▶ ' + cat + '</div>';
-    html += '<div class="check-group" style="flex-wrap:wrap;">';
+    html += '<div style="margin-bottom:14px;">';
+    html += '<div style="font-size:11px;font-weight:700;color:var(--sub);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--bor);">▶ ' + cat + '</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
     byCategory[cat].forEach(function(q){
-      html += '<label class="check-btn" style="cursor:pointer;"><input type="checkbox" class="qual-chk" value="' + q.name + '" style="display:none;"><span>' + q.name + '</span></label>';
+      var id = 'qual_' + q.name.replace(/[^a-zA-Z0-9]/g, '_');
+      html += '<div class="qual-item" data-val="' + q.name + '" style="display:inline-flex;align-items:center;gap:6px;background:var(--sur);border:2px solid var(--bor);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;user-select:none;-webkit-user-select:none;min-height:44px;">';
+      html += '<span class="qual-check" style="font-size:14px;">☐</span>';
+      html += '<span>' + q.name + '</span>';
+      html += '</div>';
     });
     html += '</div></div>';
   });
   container.innerHTML = html;
-  // チェックボックスのクリックイベントを直接設定
-  container.querySelectorAll('.check-btn').forEach(function(label){
-    label.addEventListener('click', function(e){
+
+  // タッチ・クリック両対応
+  container.querySelectorAll('.qual-item').forEach(function(item){
+    function toggle(e){
       e.preventDefault();
-      var chk = label.querySelector('input[type=checkbox]');
-      chk.checked = !chk.checked;
-      label.classList.toggle('sel', chk.checked);
-    });
-    label.addEventListener('touchend', function(e){
-      e.preventDefault();
-      var chk = label.querySelector('input[type=checkbox]');
-      chk.checked = !chk.checked;
-      label.classList.toggle('sel', chk.checked);
-    });
+      e.stopPropagation();
+      var checked = item.dataset.checked === '1';
+      checked = !checked;
+      item.dataset.checked = checked ? '1' : '0';
+      item.querySelector('.qual-check').textContent = checked ? '☑' : '☐';
+      item.style.borderColor = checked ? 'var(--or)' : 'var(--bor)';
+      item.style.background = checked ? 'rgba(255,107,0,.12)' : 'var(--sur)';
+      item.style.color = checked ? 'var(--or)' : '';
+    }
+    item.addEventListener('click', toggle);
+    item.addEventListener('touchend', toggle, {passive: false});
   });
 }
 
@@ -744,7 +752,16 @@ function validate(step){
   if(step === 6){
     if(!sigHasData()){ showErr('sig',true); ok=false; } else showErr('sig',false);
   }
-  if(!ok) showToast('未入力の項目があります');
+  if(!ok){
+    showToast('未入力の項目があります');
+    // エラー箇所へスクロール
+    setTimeout(function(){
+      var errEl = document.querySelector('.err-msg[style*="block"], .inp.error');
+      if(errEl){
+        errEl.scrollIntoView({behavior:'smooth', block:'center'});
+      }
+    }, 100);
+  }
   return ok;
 }
 
@@ -805,7 +822,7 @@ function submitForm(){
   if(!validate(7)) return;
   var diseases = getChecked('cg-diseases');
   var workTypes = [];
-  var quals = Array.from(document.querySelectorAll('.qual-chk:checked')).map(function(q){ return q.value; });
+  var quals = Array.from(document.querySelectorAll('.qual-item[data-checked="1"]')).map(function(el){ return el.dataset.val; });
   var licenses = [];
 
   var resp = {
