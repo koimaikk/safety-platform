@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新規入場者アンケート</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1117;--sur:#161b22;--card:#1c2128;--bor:#30363d;
+  --or:#FF6B00;--ye:#FFD600;--grn:#22C55E;--red:#EF4444;--blu:#3B82F6;
+  --txt:#e6edf3;--sub:#7d8590;--wht:#f0f6fc;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;font-size:14px;}
+header{background:var(--or);padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50;}
+.hd-icon{font-size:22px;}
+.hd-title{font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;color:#fff;flex:1;}
+.hd-sub{font-size:11px;color:rgba(255,255,255,.8);}
+
+/* ステップバー */
+.step-bar{background:var(--sur);padding:10px 16px;border-bottom:1px solid var(--bor);}
+.step-dots{display:flex;gap:6px;align-items:center;justify-content:center;}
+.step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid var(--bor);color:var(--sub);transition:.3s;}
+.step-dot.done{background:var(--grn);border-color:var(--grn);color:#fff;}
+.step-dot.active{background:var(--or);border-color:var(--or);color:#fff;}
+.step-line{flex:1;height:2px;background:var(--bor);border-radius:1px;max-width:30px;}
+.step-line.done{background:var(--grn);}
+.step-label{text-align:center;font-size:11px;color:var(--sub);margin-top:4px;}
+
+/* コンテンツ */
+.content{padding:12px 16px;max-width:600px;margin:0 auto;}
+.section{background:var(--card);border:1px solid var(--bor);border-radius:10px;padding:14px;margin-bottom:12px;}
+.sec-title{font-size:13px;font-weight:700;color:var(--or);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.form-row{margin-bottom:12px;}
+.form-row label{display:block;font-size:11px;color:var(--sub);font-weight:700;margin-bottom:5px;}
+.form-row label .req{color:var(--red);margin-left:3px;}
+.inp{width:100%;background:var(--bg);border:1px solid var(--bor);border-radius:6px;padding:9px 12px;color:var(--txt);font-size:14px;font-family:inherit;transition:.2s;}
+.inp:focus{outline:none;border-color:var(--or);}
+.inp-half{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.inp-zip{display:grid;grid-template-columns:1fr 8px 1fr;gap:4px;align-items:center;}
+.zip-sep{text-align:center;color:var(--sub);}
+select.inp{cursor:pointer;}
+textarea.inp{resize:vertical;min-height:60px;}
+
+/* ラジオ・チェック */
+.radio-group,.check-group{display:flex;flex-wrap:wrap;gap:6px;}
+.radio-btn,.check-btn{display:inline-flex;align-items:center;gap:5px;background:var(--sur);border:1px solid var(--bor);border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;transition:.2s;user-select:none;}
+.radio-btn input,.check-btn input{display:none;}
+.radio-btn.sel,.check-btn.sel{border-color:var(--or);background:rgba(255,107,0,.12);color:var(--or);}
+.radio-btn.sel-grn,.check-btn.sel-grn{border-color:var(--grn);background:rgba(34,197,94,.12);color:var(--grn);}
+.check-btn{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+.radio-btn{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+
+/* 署名 */
+#sig-canvas{border:1px solid var(--bor);border-radius:6px;background:#fff;touch-action:none;display:block;width:100%;cursor:crosshair;}
+
+/* 完了画面 */
+.done-screen{display:none;text-align:center;padding:40px 20px;}
+.done-icon{font-size:64px;margin-bottom:16px;}
+.done-title{font-size:22px;font-weight:900;color:var(--grn);margin-bottom:8px;}
+.done-sub{font-size:13px;color:var(--sub);line-height:1.8;}
+.done-card{background:var(--card);border:1px solid var(--bor);border-radius:10px;padding:14px;margin:16px auto;max-width:400px;text-align:left;}
+.done-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bor);font-size:13px;}
+.done-item:last-child{border-bottom:none;}
+.done-item .lbl{color:var(--sub);}
+
+/* ナビボタン */
+.nav-row{display:flex;gap:8px;padding:12px 16px;position:sticky;bottom:0;background:linear-gradient(transparent,var(--bg) 40%);max-width:600px;margin:0 auto;}
+.btn-next{flex:1;padding:14px;background:var(--or);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:.2s;}
+.btn-next:hover{background:#e55a00;}
+.btn-back{padding:14px 18px;background:none;border:1px solid var(--bor);color:var(--sub);border-radius:8px;font-size:14px;font-family:inherit;cursor:pointer;transition:.2s;}
+.btn-back:hover{border-color:var(--or);color:var(--or);}
+.btn-submit{flex:1;padding:14px;background:var(--grn);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:.2s;}
+.btn-submit:hover{background:#16a34a;}
+
+/* トースト */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;opacity:0;transition:.3s;z-index:200;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+
+/* エラー表示 */
+.err-msg{font-size:11px;color:var(--red);margin-top:4px;display:none;}
+.inp.error{border-color:var(--red);}
+
+.notice{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);border-radius:6px;padding:10px 12px;font-size:12px;color:#93c5fd;line-height:1.7;margin-bottom:12px;}
+
+@media(max-width:400px){
+  .inp-half{grid-template-columns:1fr;}
+}
+
+/* ─── カスタムカレンダー ─── */
+.cal-wrap{position:relative;}
+.cal-trigger{width:100%;background:var(--bg);border:1px solid var(--bor);border-radius:6px;padding:9px 12px;color:var(--txt);font-size:14px;font-family:inherit;text-align:left;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:.2s;}
+.cal-trigger:focus{outline:none;border-color:var(--or);}
+.cal-trigger .placeholder{color:var(--sub);}
+.cal-trigger .icon{color:var(--sub);font-size:16px;}
+.cal-popup{display:none;position:fixed;z-index:500;background:var(--card);border:1px solid var(--bor);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.5);width:300px;overflow:hidden;}
+.cal-popup.open{display:block;}
+.cal-header{background:var(--or);padding:10px 12px;display:flex;align-items:center;justify-content:space-between;}
+.cal-header .cal-title{font-size:14px;font-weight:700;color:#fff;cursor:pointer;}
+.cal-header button{background:none;border:none;color:#fff;font-size:18px;cursor:pointer;padding:0 6px;line-height:1;}
+.cal-yw-sel{display:flex;gap:8px;padding:10px 12px;background:var(--sur);}
+.cal-yw-sel select{flex:1;background:var(--card);color:var(--txt);border:1px solid var(--bor);border-radius:6px;padding:6px 8px;font-size:13px;font-family:inherit;}
+.cal-days-hd{display:grid;grid-template-columns:repeat(7,1fr);padding:8px 10px 4px;gap:2px;}
+.cal-days-hd span{text-align:center;font-size:11px;font-weight:700;color:var(--sub);padding:4px 0;}
+.cal-days-hd span:first-child{color:#ef4444;}
+.cal-days-hd span:last-child{color:#3b82f6;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:4px 10px 10px;gap:3px;}
+.cal-day{text-align:center;padding:6px 2px;border-radius:6px;cursor:pointer;font-size:13px;transition:.15s;}
+.cal-day:hover{background:rgba(255,107,0,.2);color:var(--or);}
+.cal-day.today{font-weight:700;color:var(--ye);}
+.cal-day.selected{background:var(--or);color:#fff;font-weight:700;}
+.cal-day.other-month{color:var(--bor);}
+.cal-day.sun{color:#ef4444;}
+.cal-day.sat{color:#3b82f6;}
+.cal-day.selected.sun,.cal-day.selected.sat{color:#fff;}
+.cal-day.empty{cursor:default;}
+.cal-day.empty:hover{background:none;}
+.cal-bottom{padding:8px 12px;border-top:1px solid var(--bor);display:flex;justify-content:space-between;align-items:center;}
+.cal-bottom .cal-clear{font-size:11px;color:var(--sub);background:none;border:none;cursor:pointer;font-family:inherit;}
+.cal-bottom .cal-today-btn{font-size:11px;color:var(--or);background:none;border:none;cursor:pointer;font-weight:700;font-family:inherit;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-icon">📋</div>
+  <div>
+    <div class="hd-title">新規入場者アンケート</div>
+    <div class="hd-sub">ご入力内容は暗号化して管理されます</div>
+  </div>
+</header>
+
+<!-- ステップバー -->
+<div class="step-bar">
+  <div class="step-dots" id="step-dots"></div>
+  <div class="step-label" id="step-label"></div>
+</div>
+
+<!-- フォーム本体 -->
+<div class="content" id="form-area">
+
+<!-- STEP 1: 工事・会社情報 -->
+<div class="step-sec" id="step1">
+  <div class="section">
+    <div class="sec-title">🏗 工事・所属情報</div>
+    <div class="form-row">
+      <label>工事件名<span class="req">*</span></label>
+      <select class="inp" id="f-project">
+        <option value="">選択してください</option>
+      </select>
+      <div class="err-msg" id="e-project">工事件名を選択してください</div>
+    </div>
+    <div class="form-row">
+      <label>所属会社<span class="req">*</span></label>
+      <select class="inp" id="f-company">
+        <option value="">選択してください</option>
+      </select>
+      <div class="err-msg" id="e-company">所属会社を選択してください</div>
+    </div>
+    <div class="form-row">
+      <label>職種<span class="req">*</span></label>
+      <select class="inp" id="f-jobtype">
+        <option value="">選択してください</option>
+        <option>土木一般</option>
+        <option>とび・土工</option>
+        <option>鉄筋工</option>
+        <option>型枠大工</option>
+        <option>左官</option>
+        <option>塗装工</option>
+        <option>電工</option>
+        <option>配管工</option>
+        <option>鉄骨工</option>
+        <option>溶接工</option>
+        <option>大工</option>
+        <option>内装工</option>
+        <option>建設機械運転</option>
+        <option>クレーン運転</option>
+        <option>運転手（一般）</option>
+        <option>警備員</option>
+        <option>その他</option>
+      </select>
+      <div class="err-msg" id="e-jobtype">職種を選択してください</div>
+    </div>
+    <div class="form-row">
+      <label>入場予定日<span class="req">*</span></label>
+      <input type="date" class="inp" id="f-entry">
+      <div class="err-msg" id="e-entry">入場予定日を入力してください</div>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 2: 個人情報 -->
+<div class="step-sec" id="step2" style="display:none;">
+  <div class="section">
+    <div class="sec-title">👤 個人情報</div>
+    <div class="form-row">
+      <label>氏名（漢字）<span class="req">*</span></label>
+      <input type="text" class="inp" id="f-name" placeholder="例：建設 太郎">
+      <div class="err-msg" id="e-name">氏名を入力してください</div>
+    </div>
+    <div class="form-row">
+      <label>生年月日<span class="req">*</span></label>
+      <div class="cal-wrap">
+        <button type="button" class="cal-trigger" id="birth-trigger" onclick="openCal()">
+          <span id="birth-display" class="placeholder">年 / 月 / 日を選択</span>
+          <span class="icon">📅</span>
+        </button>
+        <input type="hidden" id="f-birth">
+      </div>
+      <div class="err-msg" id="e-birth">生年月日を入力してください</div>
+    </div>
+    <div class="form-row">
+      <label>年齢</label>
+      <input type="text" class="inp" id="f-age" placeholder="生年月日から自動計算" readonly style="color:var(--sub);">
+    </div>
+    <div class="form-row">
+      <label>性別<span class="req">*</span></label>
+      <div class="radio-group" id="rg-gender">
+        <label class="radio-btn"><input type="radio" name="gender" value="男性"><span>男性</span></label>
+        <label class="radio-btn"><input type="radio" name="gender" value="女性"><span>女性</span></label>
+      </div>
+      <div class="err-msg" id="e-gender">性別を選択してください</div>
+    </div>
+    <div class="form-row">
+      <label>血液型</label>
+      <select class="inp" id="f-blood">
+        <option value="">不明</option>
+        <option>A型</option><option>B型</option><option>O型</option><option>AB型</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>住所（都道府県・市区町村）<span class="req">*</span></label>
+      <input type="text" class="inp" id="f-addr" placeholder="例：大阪府大阪市北区">
+      <div class="err-msg" id="e-addr">住所を入力してください</div>
+    </div>
+    <div class="form-row">
+      <label>電話番号<span class="req">*</span></label>
+      <input type="tel" class="inp" id="f-phone" placeholder="例：090-1234-5678" oninput="fmtPhone(this)">
+      <div class="err-msg" id="e-phone">電話番号を入力してください</div>
+    </div>
+    <div class="form-row">
+      <label>メールアドレス</label>
+      <input type="email" class="inp" id="f-email" placeholder="例：taro@example.com">
+    </div>
+  </div>
+  <div class="section">
+    <div class="sec-title">🚨 緊急連絡先</div>
+    <div class="form-row">
+      <label>緊急連絡先 氏名<span class="req">*</span></label>
+      <input type="text" class="inp" id="f-emg-name" placeholder="例：建設 花子">
+      <div class="err-msg" id="e-emg-name">緊急連絡先氏名を入力してください</div>
+    </div>
+    <div class="form-row">
+      <label>続柄<span class="req">*</span></label>
+      <div class="radio-group" id="rg-rel">
+        <label class="radio-btn"><input type="radio" name="emg-rel" value="配偶者"><span>配偶者</span></label>
+        <label class="radio-btn"><input type="radio" name="emg-rel" value="親"><span>親</span></label>
+        <label class="radio-btn"><input type="radio" name="emg-rel" value="子"><span>子</span></label>
+        <label class="radio-btn"><input type="radio" name="emg-rel" value="兄弟姉妹"><span>兄弟姉妹</span></label>
+        <label class="radio-btn"><input type="radio" name="emg-rel" value="その他"><span>その他</span></label>
+      </div>
+      <div class="err-msg" id="e-emg-rel">続柄を選択してください</div>
+    </div>
+    <div class="form-row">
+      <label>緊急連絡先 電話番号<span class="req">*</span></label>
+      <input type="tel" class="inp" id="f-emg-phone" placeholder="例：06-1234-5678" oninput="fmtPhone(this)">
+      <div class="err-msg" id="e-emg-phone">緊急連絡先電話番号を入力してください</div>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 3: 健康状態 -->
+<div class="step-sec" id="step3" style="display:none;">
+  <div class="section">
+    <div class="sec-title">🏥 健康状態</div>
+    <div class="notice">正確にご回答ください。緊急時の対応に活用します。</div>
+    <div class="form-row">
+      <label>本日の体調<span class="req">*</span></label>
+      <div class="radio-group" id="rg-condition">
+        <label class="radio-btn"><input type="radio" name="condition" value="良好"><span>😊 良好</span></label>
+        <label class="radio-btn"><input type="radio" name="condition" value="普通"><span>😐 普通</span></label>
+        <label class="radio-btn"><input type="radio" name="condition" value="不調"><span>😟 不調</span></label>
+      </div>
+      <div class="err-msg" id="e-condition">体調を選択してください</div>
+    </div>
+    <div class="form-row">
+      <label>既往疾患（持病）はありますか？<span class="req">*</span></label>
+      <div class="radio-group" id="rg-disease">
+        <label class="radio-btn"><input type="radio" name="disease" value="なし"><span>なし</span></label>
+        <label class="radio-btn"><input type="radio" name="disease" value="あり"><span>あり</span></label>
+      </div>
+      <div class="err-msg" id="e-disease">選択してください</div>
+      <div id="disease-detail" style="display:none;margin-top:8px;">
+        <div class="check-group" id="cg-diseases">
+          <label class="check-btn"><input type="checkbox" value="高血圧"><span>高血圧</span></label>
+          <label class="check-btn"><input type="checkbox" value="心臓病"><span>心臓病</span></label>
+          <label class="check-btn"><input type="checkbox" value="糖尿病"><span>糖尿病</span></label>
+          <label class="check-btn"><input type="checkbox" value="喘息"><span>喘息</span></label>
+          <label class="check-btn"><input type="checkbox" value="てんかん"><span>てんかん</span></label>
+          <label class="check-btn"><input type="checkbox" value="腰痛"><span>腰痛</span></label>
+          <label class="check-btn"><input type="checkbox" value="その他"><span>その他</span></label>
+        </div>
+        <input type="text" class="inp" id="f-dis-other" placeholder="その他の疾患を入力" style="margin-top:8px;">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>服薬中ですか？<span class="req">*</span></label>
+      <div class="radio-group" id="rg-med">
+        <label class="radio-btn"><input type="radio" name="med" value="なし"><span>なし</span></label>
+        <label class="radio-btn"><input type="radio" name="med" value="あり"><span>あり</span></label>
+      </div>
+      <div class="err-msg" id="e-med">選択してください</div>
+      <input type="text" class="inp" id="f-med-detail" placeholder="薬品名を入力（任意）" style="margin-top:8px;display:none;">
+    </div>
+    <div class="form-row">
+      <label>アレルギーはありますか？<span class="req">*</span></label>
+      <div class="radio-group" id="rg-allergy">
+        <label class="radio-btn"><input type="radio" name="allergy" value="なし"><span>なし</span></label>
+        <label class="radio-btn"><input type="radio" name="allergy" value="あり"><span>あり</span></label>
+      </div>
+      <div class="err-msg" id="e-allergy">選択してください</div>
+      <input type="text" class="inp" id="f-allergy-detail" placeholder="アレルギーの内容を入力" style="margin-top:8px;display:none;">
+    </div>
+    <div class="form-row">
+      <label>直近3ヶ月以内に37.5度以上の発熱はありましたか？<span class="req">*</span></label>
+      <div class="radio-group" id="rg-fever">
+        <label class="radio-btn"><input type="radio" name="fever" value="なし"><span>なし</span></label>
+        <label class="radio-btn"><input type="radio" name="fever" value="あり"><span>あり</span></label>
+      </div>
+      <div class="err-msg" id="e-fever">選択してください</div>
+    </div>
+    <div class="form-row">
+      <label>直近1年以内に健康診断を受けましたか？<span class="req">*</span></label>
+      <div class="radio-group" id="rg-health-check">
+        <label class="radio-btn"><input type="radio" name="health-check" value="受診済"><span>受診済</span></label>
+        <label class="radio-btn"><input type="radio" name="health-check" value="未受診"><span>未受診</span></label>
+      </div>
+      <div class="err-msg" id="e-health-check">選択してください</div>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 4: 作業経験 -->
+<div class="step-sec" id="step4" style="display:none;">
+  <div class="section">
+    <div class="sec-title">🔨 作業経験</div>
+    <div class="form-row">
+      <label>建設業の経験年数<span class="req">*</span></label>
+      <select class="inp" id="f-exp-total">
+        <option value="">選択してください</option>
+        <option>1年未満</option><option>1〜3年</option><option>3〜5年</option>
+        <option>5〜10年</option><option>10〜20年</option><option>20年以上</option>
+      </select>
+      <div class="err-msg" id="e-exp-total">選択してください</div>
+    </div>
+    <div class="form-row">
+      <label>現在の職種での経験年数<span class="req">*</span></label>
+      <select class="inp" id="f-exp-current">
+        <option value="">選択してください</option>
+        <option>1年未満</option><option>1〜3年</option><option>3〜5年</option>
+        <option>5〜10年</option><option>10〜20年</option><option>20年以上</option>
+      </select>
+      <div class="err-msg" id="e-exp-current">選択してください</div>
+    </div>
+    <div class="form-row">
+      <label>過去に労働災害の経験はありますか？<span class="req">*</span></label>
+      <div class="radio-group" id="rg-accident">
+        <label class="radio-btn"><input type="radio" name="accident" value="なし"><span>なし</span></label>
+        <label class="radio-btn"><input type="radio" name="accident" value="あり"><span>あり</span></label>
+      </div>
+      <div class="err-msg" id="e-accident">選択してください</div>
+    </div>
+    <div class="form-row">
+      <label>高所作業（2m以上）の経験はありますか？<span class="req">*</span></label>
+      <div class="radio-group" id="rg-height">
+        <label class="radio-btn"><input type="radio" name="height" value="あり"><span>あり</span></label>
+        <label class="radio-btn"><input type="radio" name="height" value="なし"><span>なし</span></label>
+      </div>
+      <div class="err-msg" id="e-height">選択してください</div>
+    </div>
+
+  </div>
+</div>
+
+
+
+<!-- STEP 5: 資格 -->
+<div class="step-sec" id="step5" style="display:none;">
+  <div class="section">
+    <div class="sec-title">🏅 保有資格</div>
+    <div class="notice">保有している資格・免許にチェックしてください</div>
+    <div id="qual-list"></div>
+  </div>
+</div>
+
+<!-- STEP 6: 安全教育 -->
+<div class="step-sec" id="step6" style="display:none;">
+  <div class="section">
+    <div class="sec-title">📚 安全教育・建設業許可</div>
+    <div class="form-row">
+      <label>雇入れ時・作業内容変更時の安全衛生教育を受けましたか？<span class="req">*</span></label>
+      <div class="radio-group" id="rg-safety-edu">
+        <label class="radio-btn"><input type="radio" name="safety-edu" value="受講済"><span>受講済</span></label>
+        <label class="radio-btn"><input type="radio" name="safety-edu" value="未受講"><span>未受講</span></label>
+      </div>
+      <div class="err-msg" id="e-safety-edu">選択してください</div>
+    </div>
+
+    <div class="form-row">
+      <label>その他の特記事項</label>
+      <textarea class="inp" id="f-note" placeholder="その他お伝えしたいことがあれば記入してください" rows="3"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 7: 署名 -->
+<div class="step-sec" id="step7" style="display:none;">
+  <div class="section">
+    <div class="sec-title">✍️ 本人署名</div>
+    <div class="notice">上記内容に相違ないことを確認し、署名してください。</div>
+    <div class="form-row">
+      <label>署名欄（指またはマウスで署名してください）</label>
+      <canvas id="sig-canvas" width="560" height="160"></canvas>
+      <div class="err-msg" id="e-sig">署名してください</div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button onclick="clearSig()" style="background:none;border:1px solid var(--bor);color:var(--sub);border-radius:4px;padding:6px 12px;font-size:12px;font-family:inherit;cursor:pointer;">クリア</button>
+      </div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="sec-title">📋 入力内容の確認</div>
+    <div id="confirm-summary" style="font-size:13px;line-height:2;"></div>
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<!-- 完了画面 -->
+<div class="done-screen content" id="done-screen">
+  <div class="done-icon">✅</div>
+  <div class="done-title">提出完了</div>
+  <div class="done-sub">アンケートのご提出ありがとうございます。<br>内容を確認いたします。</div>
+  <div class="done-card" id="done-summary"></div>
+</div>
+
+<!-- ナビボタン -->
+<div class="nav-row" id="nav-row">
+  <button class="btn-back" id="btn-back" onclick="prevStep()" style="display:none;">← 戻る</button>
+  <button class="btn-next" id="btn-next" onclick="nextStep()">次へ →</button>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════
+// 設定・定数
+// ══════════════════════════════════════════════════
+var SK = {
+  proj: 'anketo_proj',
+  comp: 'anketo_comp',
+  quals: 'anketo_quals',
+  settings: 'anketo_settings',
+  responses: 'anketo_responses'
+};
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbzxKrvlWi14XoXSD0Wib30zc0I9saQR3rSN9bGWrzl8wTDXJ5amOP2VzaYOUy0BEGEmqg/exec';
+
+var TOTAL_STEPS = 7;
+var STEP_LABELS = ['工事情報','個人情報','健康状態','作業経験','保有資格','安全教育','署名・確認'];
+var curStep = 1;
+
+// ══════════════════════════════════════════════════
+// 初期化
+// ══════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', function(){
+  renderStepBar();
+  loadDropdowns();
+  renderQuals();
+  initRadioGroups();
+  initCheckGroups();
+  initSigCanvas();
+  setTodayEntry();
+  checkUrlParams();
+});
+
+function setTodayEntry(){
+  var today = new Date();
+  var y = today.getFullYear();
+  var m = String(today.getMonth()+1).padStart(2,'0');
+  var d = String(today.getDate()).padStart(2,'0');
+  document.getElementById('f-entry').value = y+'-'+m+'-'+d;
+}
+
+function checkUrlParams(){
+  var params = new URLSearchParams(window.location.search);
+  var proj = params.get('project');
+  if(proj){
+    var sel = document.getElementById('f-project');
+    for(var i=0; i<sel.options.length; i++){
+      if(sel.options[i].value === proj){ sel.value = proj; break; }
+    }
+  }
+}
+
+function loadDropdowns(){
+  // GASから最新のマスタデータを取得
+  var url = GAS_URL + '?type=all&t=' + Date.now();
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      var projs = data.projects || [];
+      var comps = data.companies || [];
+      // localStorageに保存
+      if(projs.length > 0) localStorage.setItem(SK.proj, JSON.stringify(projs.map(function(p){ return Object.assign({},p,{shown:true,active:true}); })));
+      if(comps.length > 0) localStorage.setItem(SK.comp, JSON.stringify(comps.map(function(c){ return Object.assign({},c,{active:true}); })));
+      // ドロップダウンを更新
+      fillDropdowns(projs, comps);
+    })
+    .catch(function(){
+      // GAS取得失敗時はlocalStorageから読み込む
+      var projs = getList(SK.proj).filter(function(p){ return p.shown === true; });
+      var comps = getList(SK.comp).filter(function(c){ return c.active !== false; });
+      fillDropdowns(projs, comps);
+    });
+}
+
+function fillDropdowns(projs, comps){
+  var sel = document.getElementById('f-project');
+  sel.innerHTML = '<option value="">選択してください</option>';
+  projs.forEach(function(p){
+    var o = document.createElement('option');
+    o.value = p.name; o.textContent = p.name; sel.appendChild(o);
+  });
+  var csel = document.getElementById('f-company');
+  csel.innerHTML = '<option value="">選択してください</option>';
+  comps.forEach(function(c){
+    var o = document.createElement('option');
+    o.value = c.name; o.textContent = c.name; csel.appendChild(o);
+  });
+}
+
+function fillDropdowns(projs, comps){
+  var sel = document.getElementById('f-project');
+  projs.forEach(function(p){
+    if(!sel.querySelector('option[value="'+p.name+'"]')){
+      var o = document.createElement('option');
+      o.value = p.name; o.textContent = p.name; sel.appendChild(o);
+    }
+  });
+  var csel = document.getElementById('f-company');
+  comps.forEach(function(c){
+    if(!csel.querySelector('option[value="'+c.name+'"]')){
+      var o = document.createElement('option');
+      o.value = c.name; o.textContent = c.name; csel.appendChild(o);
+    }
+  });
+}
+
+function getList(key){
+  try{ return JSON.parse(localStorage.getItem(key)) || []; } catch(e){ return []; }
+}
+
+function renderQuals(){
+  var quals = getList(SK.quals).filter(function(q){ return q.active === true; });
+  var container = document.getElementById('qual-list');
+  if(!container) return;
+  if(quals.length === 0){
+    container.innerHTML = '<div style="color:var(--sub);font-size:13px;text-align:center;padding:20px;">資格マスタが設定されていません。<br>管理者にご確認ください。</div>';
+    return;
+  }
+  var byCategory = {};
+  quals.forEach(function(q){
+    if(!byCategory[q.category]) byCategory[q.category] = [];
+    byCategory[q.category].push(q);
+  });
+  var html = '';
+  Object.keys(byCategory).forEach(function(cat){
+    html += '<div style="margin-bottom:14px;">';
+    html += '<div style="font-size:11px;font-weight:700;color:var(--sub);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--bor);">▶ ' + cat + '</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+    byCategory[cat].forEach(function(q){
+      var id = 'qual_' + q.name.replace(/[^a-zA-Z0-9]/g, '_');
+      html += '<div class="qual-item" data-val="' + q.name + '" style="display:inline-flex;align-items:center;gap:6px;background:var(--sur);border:2px solid var(--bor);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;user-select:none;-webkit-user-select:none;min-height:44px;">';
+      html += '<span class="qual-check" style="font-size:14px;">☐</span>';
+      html += '<span>' + q.name + '</span>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+  container.innerHTML = html;
+
+  // タッチ・クリック両対応
+  container.querySelectorAll('.qual-item').forEach(function(item){
+    function toggle(e){
+      e.preventDefault();
+      e.stopPropagation();
+      var checked = item.dataset.checked === '1';
+      checked = !checked;
+      item.dataset.checked = checked ? '1' : '0';
+      item.querySelector('.qual-check').textContent = checked ? '☑' : '☐';
+      item.style.borderColor = checked ? 'var(--or)' : 'var(--bor)';
+      item.style.background = checked ? 'rgba(255,107,0,.12)' : 'var(--sur)';
+      item.style.color = checked ? 'var(--or)' : '';
+    }
+    item.addEventListener('click', toggle);
+    item.addEventListener('touchend', toggle, {passive: false});
+  });
+}
+
+// ══════════════════════════════════════════════════
+// ラジオ・チェックUIの初期化
+// ══════════════════════════════════════════════════
+function initRadioGroups(){
+  document.querySelectorAll('.radio-btn').forEach(function(label){
+    var inp = label.querySelector('input[type=radio]');
+    if(!inp) return;
+    label.addEventListener('click', function(){
+      var name = inp.name;
+      document.querySelectorAll('input[name="'+name+'"]').forEach(function(r){
+        r.closest('.radio-btn').classList.remove('sel');
+      });
+      label.classList.add('sel');
+      // 連動表示
+      handleRadioChange(name, inp.value);
+    });
+  });
+}
+
+function handleRadioChange(name, val){
+  if(name === 'disease'){
+    document.getElementById('disease-detail').style.display = val === 'あり' ? 'block' : 'none';
+  }
+  if(name === 'med'){
+    document.getElementById('f-med-detail').style.display = val === 'あり' ? 'block' : 'none';
+  }
+  if(name === 'allergy'){
+    document.getElementById('f-allergy-detail').style.display = val === 'あり' ? 'block' : 'none';
+  }
+}
+
+function initCheckGroups(){
+  document.querySelectorAll('.check-btn').forEach(function(label){
+    var inp = label.querySelector('input[type=checkbox]');
+    if(!inp || inp.dataset.init) return;
+    inp.dataset.init = '1';
+    label.addEventListener('click', function(e){
+      if(e.target === inp) return;
+      inp.checked = !inp.checked;
+      label.classList.toggle('sel', inp.checked);
+    });
+    inp.addEventListener('change', function(){
+      label.classList.toggle('sel', inp.checked);
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════
+// ステップバー
+// ══════════════════════════════════════════════════
+function renderStepBar(){
+  var dots = document.getElementById('step-dots');
+  dots.innerHTML = '';
+  for(var i=1; i<=TOTAL_STEPS; i++){
+    if(i > 1){
+      var line = document.createElement('div');
+      line.className = 'step-line' + (i <= curStep ? ' done' : '');
+      dots.appendChild(line);
+    }
+    var dot = document.createElement('div');
+    dot.className = 'step-dot' + (i < curStep ? ' done' : i === curStep ? ' active' : '');
+    dot.textContent = i < curStep ? '✓' : String(i);
+    dots.appendChild(dot);
+  }
+  document.getElementById('step-label').textContent = 'STEP ' + curStep + '：' + STEP_LABELS[curStep-1];
+  document.getElementById('btn-back').style.display = curStep > 1 ? 'block' : 'none';
+  var btnNext = document.getElementById('btn-next');
+  if(curStep === TOTAL_STEPS){
+    btnNext.style.display = 'none';
+    // 送信ボタンを追加
+    var row = document.getElementById('nav-row');
+    if(!document.getElementById('btn-submit-real')){
+      var sub = document.createElement('button');
+      sub.id = 'btn-submit-real';
+      sub.className = 'btn-submit';
+      sub.textContent = '✅ 提出する';
+      sub.onclick = submitForm;
+      row.appendChild(sub);
+    }
+  } else {
+    btnNext.style.display = 'flex';
+    var old = document.getElementById('btn-submit-real');
+    if(old) old.remove();
+  }
+}
+
+// ══════════════════════════════════════════════════
+// バリデーション
+// ══════════════════════════════════════════════════
+function getRadio(name){
+  var el = document.querySelector('input[name="'+name+'"]:checked');
+  return el ? el.value : '';
+}
+
+function getChecked(container){
+  return Array.from(document.querySelectorAll('#'+container+' input[type=checkbox]:checked')).map(function(c){ return c.value; });
+}
+
+function showErr(id, show){
+  var el = document.getElementById('e-'+id);
+  var inp = document.getElementById('f-'+id) || document.getElementById('rg-'+id);
+  if(el) el.style.display = show ? 'block' : 'none';
+  if(inp && inp.classList) inp.classList.toggle('error', show);
+}
+
+function validate(step){
+  var ok = true;
+  var errors = [];
+
+  if(step === 1){
+    if(!document.getElementById('f-project').value){ showErr('project',true); ok=false; errors.push('工事件名'); } else showErr('project',false);
+    if(!document.getElementById('f-company').value){ showErr('company',true); ok=false; errors.push('所属会社'); } else showErr('company',false);
+    if(!document.getElementById('f-jobtype').value){ showErr('jobtype',true); ok=false; errors.push('職種'); } else showErr('jobtype',false);
+    if(!document.getElementById('f-entry').value){ showErr('entry',true); ok=false; errors.push('入場予定日'); } else showErr('entry',false);
+  }
+  if(step === 2){
+    if(!document.getElementById('f-name').value.trim()){ showErr('name',true); ok=false; } else showErr('name',false);
+    if(!document.getElementById('f-birth').value){ showErr('birth',true); ok=false; } else showErr('birth',false);
+    if(!getRadio('gender')){ showErr('gender',true); ok=false; } else showErr('gender',false);
+    if(!document.getElementById('f-addr').value.trim()){ showErr('addr',true); ok=false; } else showErr('addr',false);
+    if(!document.getElementById('f-phone').value.trim()){ showErr('phone',true); ok=false; } else showErr('phone',false);
+    if(!document.getElementById('f-emg-name').value.trim()){ showErr('emg-name',true); ok=false; } else showErr('emg-name',false);
+    if(!getRadio('emg-rel')){ showErr('emg-rel',true); ok=false; } else showErr('emg-rel',false);
+    if(!document.getElementById('f-emg-phone').value.trim()){ showErr('emg-phone',true); ok=false; } else showErr('emg-phone',false);
+  }
+  if(step === 3){
+    if(!getRadio('condition')){ showErr('condition',true); ok=false; } else showErr('condition',false);
+    if(!getRadio('disease')){ showErr('disease',true); ok=false; } else showErr('disease',false);
+    if(!getRadio('med')){ showErr('med',true); ok=false; } else showErr('med',false);
+    if(!getRadio('allergy')){ showErr('allergy',true); ok=false; } else showErr('allergy',false);
+    if(!getRadio('fever')){ showErr('fever',true); ok=false; } else showErr('fever',false);
+    if(!getRadio('health-check')){ showErr('health-check',true); ok=false; } else showErr('health-check',false);
+  }
+  if(step === 4){
+    if(!document.getElementById('f-exp-total').value){ showErr('exp-total',true); ok=false; } else showErr('exp-total',false);
+    if(!document.getElementById('f-exp-current').value){ showErr('exp-current',true); ok=false; } else showErr('exp-current',false);
+    if(!getRadio('accident')){ showErr('accident',true); ok=false; } else showErr('accident',false);
+    if(!getRadio('height')){ showErr('height',true); ok=false; } else showErr('height',false);
+  }
+  if(step === 6){
+    if(!getRadio('safety-edu')){ showErr('safety-edu',true); ok=false; } else showErr('safety-edu',false);
+  }
+  if(step === 7){
+    if(!sigHasData()){ showErr('sig',true); ok=false; } else showErr('sig',false);
+  }
+  if(!ok){
+    showToast('未入力の項目があります');
+    // エラー箇所へスクロール
+    setTimeout(function(){
+      var errEl = document.querySelector('.err-msg[style*="block"], .inp.error');
+      if(errEl){
+        errEl.scrollIntoView({behavior:'smooth', block:'center'});
+      }
+    }, 100);
+  }
+  return ok;
+}
+
+// ══════════════════════════════════════════════════
+// ステップ移動
+// ══════════════════════════════════════════════════
+function nextStep(){
+  if(!validate(curStep)) return;
+  if(curStep < TOTAL_STEPS){
+    document.getElementById('step'+curStep).style.display = 'none';
+    curStep++;
+    document.getElementById('step'+curStep).style.display = 'block';
+    if(curStep === TOTAL_STEPS){ buildConfirm(); setTimeout(resizeSigCanvas, 50); }
+    renderStepBar();
+    window.scrollTo(0,0);
+  }
+}
+
+function prevStep(){
+  if(curStep > 1){
+    document.getElementById('step'+curStep).style.display = 'none';
+    curStep--;
+    document.getElementById('step'+curStep).style.display = 'block';
+    renderStepBar();
+    window.scrollTo(0,0);
+  }
+}
+
+// ══════════════════════════════════════════════════
+// 確認サマリー
+// ══════════════════════════════════════════════════
+function buildConfirm(){
+  var html = '';
+  var items = [
+    ['工事件名', document.getElementById('f-project').value],
+    ['所属会社', document.getElementById('f-company').value],
+    ['職種', document.getElementById('f-jobtype').value],
+    ['入場予定日', document.getElementById('f-entry').value],
+    ['氏名', document.getElementById('f-name').value],
+    ['生年月日', document.getElementById('f-birth').value],
+    ['性別', getRadio('gender')],
+    ['電話番号', document.getElementById('f-phone').value],
+    ['本日の体調', getRadio('condition')],
+    ['既往疾患', getRadio('disease')],
+    ['建設業経験', document.getElementById('f-exp-total').value],
+    ['安全教育', getRadio('safety-edu')]
+  ];
+  items.forEach(function(item){
+    html += '<div class="done-item"><span class="lbl">'+item[0]+'</span><span>'+( item[1]||'―')+'</span></div>';
+  });
+  document.getElementById('confirm-summary').innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════
+// 送信
+// ══════════════════════════════════════════════════
+function submitForm(){
+  if(!validate(7)) return;
+  var diseases = getChecked('cg-diseases');
+  var workTypes = [];
+  var quals = Array.from(document.querySelectorAll('.qual-item[data-checked="1"]')).map(function(el){ return el.dataset.val; });
+  var licenses = [];
+
+  var resp = {
+    id: 'resp_' + Date.now(),
+    submittedAt: new Date().toISOString(),
+    status: '新規',
+    projectName: document.getElementById('f-project').value,
+    company:     document.getElementById('f-company').value,
+    jobType:     document.getElementById('f-jobtype').value,
+    entryDate:   document.getElementById('f-entry').value,
+    nameKanji:   document.getElementById('f-name').value.trim(),
+    birthdate:   document.getElementById('f-birth').value,
+    age:         document.getElementById('f-age').value,
+    gender:      getRadio('gender'),
+    blood:       document.getElementById('f-blood').value,
+    address:     document.getElementById('f-addr').value.trim(),
+    phone:       document.getElementById('f-phone').value.trim(),
+    email:       document.getElementById('f-email').value.trim(),
+    emgName:     document.getElementById('f-emg-name').value.trim(),
+    emgRel:      getRadio('emg-rel'),
+    emgPhone:    document.getElementById('f-emg-phone').value.trim(),
+    condition:   getRadio('condition'),
+    disease:     getRadio('disease'),
+    diseases:    diseases,
+    disOther:    document.getElementById('f-dis-other').value.trim(),
+    medication:  getRadio('med'),
+    medDetail:   document.getElementById('f-med-detail').value.trim(),
+    allergy:     getRadio('allergy'),
+    allergyDetail: document.getElementById('f-allergy-detail').value.trim(),
+    fever:       getRadio('fever'),
+    healthCheck: getRadio('health-check'),
+    expTotal:    document.getElementById('f-exp-total').value,
+    expCurrent:  document.getElementById('f-exp-current').value,
+    accident:    getRadio('accident'),
+    heightWork:  getRadio('height'),
+    workTypes:   workTypes,
+    qualifications: quals,
+    licenses:    licenses,
+    safetyEdu:   getRadio('safety-edu'),
+    note:        document.getElementById('f-note').value.trim(),
+    signature:   document.getElementById('sig-canvas').toDataURL('image/png'),
+    gasSubmitted: false
+  };
+
+  var list = getList(SK.responses);
+  list.unshift(resp);
+  localStorage.setItem(SK.responses, JSON.stringify(list));
+
+  // GAS送信
+  if(GAS_URL){
+    fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify(resp)
+    }).then(function(res){ return res.json(); })
+    .then(function(data){
+      if(data.result === 'success'){
+        resp.gasSubmitted = true;
+        localStorage.setItem(SK.responses, JSON.stringify(list));
+      }
+    }).catch(function(){
+      // no-corsでリトライ
+      fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify(resp),
+        mode: 'no-cors'
+      }).catch(function(){});
+    });
+  }
+
+  showDone(resp);
+}
+
+function getSettings(){
+  try{ return JSON.parse(localStorage.getItem(SK.settings)) || {}; } catch(e){ return {}; }
+}
+
+function showDone(resp){
+  document.getElementById('form-area').style.display = 'none';
+  document.getElementById('nav-row').style.display = 'none';
+  document.querySelector('.step-bar').style.display = 'none';
+  var done = document.getElementById('done-screen');
+  done.style.display = 'block';
+  var html = '';
+  var items = [
+    ['受付番号', resp.id.replace('resp_','')],
+    ['提出日時', new Date(resp.submittedAt).toLocaleString('ja-JP')],
+    ['工事件名', resp.projectName],
+    ['氏名', resp.nameKanji],
+    ['入場予定日', resp.entryDate]
+  ];
+  items.forEach(function(item){
+    html += '<div class="done-item"><span class="lbl">'+item[0]+'</span><span>'+item[1]+'</span></div>';
+  });
+  document.getElementById('done-summary').innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════
+// 署名キャンバス
+// ══════════════════════════════════════════════════
+var sigDrawing = false;
+var sigCanvas, sigCtx;
+
+function resizeSigCanvas(){
+  if(!sigCanvas) return;
+  var rect = sigCanvas.getBoundingClientRect();
+  if(rect.width === 0) return;
+  sigCanvas.width = rect.width * window.devicePixelRatio;
+  sigCanvas.height = 160 * window.devicePixelRatio;
+  sigCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  sigCtx.strokeStyle = '#111';
+  sigCtx.lineWidth = 2.5;
+  sigCtx.lineCap = 'round';
+  sigCtx.lineJoin = 'round';
+}
+
+function initSigCanvas(){
+  sigCanvas = document.getElementById('sig-canvas');
+  sigCtx = sigCanvas.getContext('2d');
+  // 初期化時はリサイズしない（STEP7が非表示のため幅=0になる）
+  window.addEventListener('resize', function(){ if(sigCanvas.offsetParent !== null) resizeSigCanvas(); });
+
+  function getPos(e){
+    var rect = sigCanvas.getBoundingClientRect();
+    var src = e.touches ? e.touches[0] : e;
+    return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+  }
+  sigCanvas.addEventListener('mousedown', function(e){ sigDrawing=true; var p=getPos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x,p.y); });
+  sigCanvas.addEventListener('mousemove', function(e){ if(!sigDrawing) return; var p=getPos(e); sigCtx.lineTo(p.x,p.y); sigCtx.stroke(); });
+  sigCanvas.addEventListener('mouseup', function(){ sigDrawing=false; });
+  sigCanvas.addEventListener('touchstart', function(e){ e.preventDefault(); sigDrawing=true; var p=getPos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x,p.y); });
+  sigCanvas.addEventListener('touchmove', function(e){ e.preventDefault(); if(!sigDrawing) return; var p=getPos(e); sigCtx.lineTo(p.x,p.y); sigCtx.stroke(); });
+  sigCanvas.addEventListener('touchend', function(){ sigDrawing=false; });
+}
+
+function clearSig(){
+  if(sigCanvas) sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height);
+}
+
+function sigHasData(){
+  if(!sigCanvas || sigCanvas.width === 0 || sigCanvas.height === 0) return false;
+  try{
+    var data = sigCtx.getImageData(0,0,sigCanvas.width,sigCanvas.height).data;
+    for(var i=3; i<data.length; i+=4){ if(data[i] > 0) return true; }
+    return false;
+  } catch(e){ return false; }
+}
+
+// ══════════════════════════════════════════════════
+// ユーティリティ
+// ══════════════════════════════════════════════════
+function calcAge(){
+  var val = document.getElementById('f-birth').value;
+  if(!val) return;
+  var birth = new Date(val);
+  var today = new Date();
+  var age = today.getFullYear() - birth.getFullYear();
+  if(today.getMonth() < birth.getMonth() || (today.getMonth()===birth.getMonth() && today.getDate()<birth.getDate())) age--;
+  document.getElementById('f-age').value = age + '歳';
+}
+
+function fmtPhone(inp){
+  var v = inp.value.replace(/\D/g,'');
+  if(v.length === 11) inp.value = v.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+  else if(v.length === 10) inp.value = v.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+}
+
+function showToast(msg){
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2500);
+}
+
+// ══════════════════════════════════════════════════
+// カスタムカレンダー
+// ══════════════════════════════════════════════════
+var calYear = 1990, calMonth = 0;
+var calSelectedY = 0, calSelectedM = 0, calSelectedD = 0;
+
+function openCal(){
+  var popup = document.getElementById('cal-popup');
+  var trigger = document.getElementById('birth-trigger');
+  var rect = trigger.getBoundingClientRect();
+
+  // 現在の値があれば反映
+  var cur = document.getElementById('f-birth').value;
+  if(cur){
+    var parts = cur.split('-');
+    calYear = parseInt(parts[0]); calMonth = parseInt(parts[1])-1;
+    calSelectedY = calYear; calSelectedM = calMonth; calSelectedD = parseInt(parts[2]);
+  } else {
+    var now = new Date();
+    calYear = now.getFullYear() - 30;
+    calMonth = now.getMonth();
+  }
+
+  // 位置設定
+  popup.style.left = Math.min(rect.left, window.innerWidth - 310) + 'px';
+  var top = rect.bottom + 6;
+  if(top + 320 > window.innerHeight) top = rect.top - 320;
+  popup.style.top = top + 'px';
+
+  buildYearSel();
+  renderCal();
+  document.getElementById('cal-yw-sel').style.display = 'none';
+  popup.classList.add('open');
+
+  // 外クリックで閉じる
+  setTimeout(function(){
+    document.addEventListener('click', closCalOutside);
+  }, 10);
+}
+
+function closCalOutside(e){
+  var popup = document.getElementById('cal-popup');
+  var trigger = document.getElementById('birth-trigger');
+  if(!popup.contains(e.target) && e.target !== trigger && !trigger.contains(e.target)){
+    popup.classList.remove('open');
+    document.getElementById('cal-yw-sel').style.display = 'none';
+    document.removeEventListener('click', closCalOutside);
+  }
+}
+
+function buildYearSel(){
+  var sel = document.getElementById('cal-year-sel');
+  sel.innerHTML = '';
+  var curY = new Date().getFullYear();
+  for(var y = curY; y >= curY - 80; y--){
+    var o = document.createElement('option');
+    o.value = y; o.textContent = y + '年';
+    if(y === calYear) o.selected = true;
+    sel.appendChild(o);
+  }
+  document.getElementById('cal-month-sel').value = calMonth;
+}
+
+function calToggleYW(){
+  var sel = document.getElementById('cal-yw-sel');
+  var show = sel.style.display === 'none';
+  sel.style.display = show ? 'flex' : 'none';
+  if(show) buildYearSel();
+}
+
+function calYWChange(){
+  calYear = parseInt(document.getElementById('cal-year-sel').value);
+  calMonth = parseInt(document.getElementById('cal-month-sel').value);
+  document.getElementById('cal-yw-sel').style.display = 'none';
+  renderCal();
+}
+
+function calMove(dir){
+  calMonth += dir;
+  if(calMonth > 11){ calMonth = 0; calYear++; }
+  if(calMonth < 0){ calMonth = 11; calYear--; }
+  renderCal();
+}
+
+function renderCal(){
+  document.getElementById('cal-title').textContent = calYear + '年 ' + (calMonth+1) + '月';
+  var grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+  var today = new Date();
+  var first = new Date(calYear, calMonth, 1).getDay(); // 0=日
+  var last = new Date(calYear, calMonth+1, 0).getDate();
+
+  // 前月の空白
+  for(var i=0; i<first; i++){
+    var d = document.createElement('div');
+    d.className = 'cal-day empty'; grid.appendChild(d);
+  }
+  // 当月の日
+  for(var d2=1; d2<=last; d2++){
+    var el = document.createElement('div');
+    var dow = (first + d2 - 1) % 7;
+    var cls = 'cal-day';
+    if(dow===0) cls += ' sun';
+    if(dow===6) cls += ' sat';
+    if(calSelectedY===calYear && calSelectedM===calMonth && calSelectedD===d2) cls += ' selected';
+    if(today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===d2) cls += ' today';
+    el.className = cls;
+    el.textContent = d2;
+    el.onclick = (function(day){ return function(){ selectDate(calYear, calMonth, day); }; })(d2);
+    grid.appendChild(el);
+  }
+}
+
+function selectDate(y, m, d){
+  calSelectedY = y; calSelectedM = m; calSelectedD = d;
+  var yStr = String(y);
+  var mStr = String(m+1).padStart(2,'0');
+  var dStr = String(d).padStart(2,'0');
+  var val = yStr+'-'+mStr+'-'+dStr;
+  document.getElementById('f-birth').value = val;
+  document.getElementById('birth-display').textContent = yStr + '年 ' + (m+1) + '月 ' + d + '日';
+  document.getElementById('birth-display').classList.remove('placeholder');
+  calcAge();
+  document.getElementById('cal-popup').classList.remove('open');
+  document.getElementById('cal-yw-sel').style.display = 'none';
+  document.removeEventListener('click', closCalOutside);
+}
+
+function calClear(){
+  calSelectedY = calSelectedM = calSelectedD = 0;
+  document.getElementById('f-birth').value = '';
+  document.getElementById('birth-display').textContent = '年 / 月 / 日を選択';
+  document.getElementById('birth-display').classList.add('placeholder');
+  document.getElementById('f-age').value = '';
+  renderCal();
+}
+
+function calToday(){
+  var t = new Date();
+  selectDate(t.getFullYear(), t.getMonth(), t.getDate());
+}
+
+</script>
+
+<!-- カスタムカレンダー -->
+<div class="cal-popup" id="cal-popup">
+  <div class="cal-header">
+    <button id="cal-prev" onclick="calMove(-1)">&#8249;</button>
+    <span class="cal-title" id="cal-title" onclick="calToggleYW()">2000年 1月</span>
+    <button id="cal-next" onclick="calMove(1)">&#8250;</button>
+  </div>
+  <div class="cal-yw-sel" id="cal-yw-sel" style="display:none;">
+    <select id="cal-year-sel" onchange="calYWChange()"></select>
+    <select id="cal-month-sel" onchange="calYWChange()">
+      <option value="0">1月</option><option value="1">2月</option><option value="2">3月</option>
+      <option value="3">4月</option><option value="4">5月</option><option value="5">6月</option>
+      <option value="6">7月</option><option value="7">8月</option><option value="8">9月</option>
+      <option value="9">10月</option><option value="10">11月</option><option value="11">12月</option>
+    </select>
+  </div>
+  <div class="cal-days-hd">
+    <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
+  </div>
+  <div class="cal-grid" id="cal-grid"></div>
+  <div class="cal-bottom">
+    <button class="cal-clear" onclick="calClear()">クリア</button>
+    <button class="cal-today-btn" onclick="calToday()">今日</button>
+  </div>
+</div>
+</body>
+</html>
